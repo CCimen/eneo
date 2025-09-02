@@ -45,13 +45,22 @@ class AIModelsService:
         if model.hosting == ModelHostingLocation.EU:
             if Modules.EU_HOSTING not in self.user.modules:
                 return True
+                
+        if model.hosting == ModelHostingLocation.SWE:
+            if Modules.SWE_HOSTING not in self.user.modules:
+                return True
+                
         return False
 
     def _can_access(
         self,
         model: CompletionModel | EmbeddingModelLegacy,
     ):
-        if not self._is_locked(model) and not model.is_deprecated and model.is_org_enabled:
+        is_locked = self._is_locked(model)
+        is_deprecated = model.is_deprecated
+        is_org_enabled = model.is_org_enabled
+        
+        if not is_locked and not is_deprecated and is_org_enabled:
             return True
 
         return False

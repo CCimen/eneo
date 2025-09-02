@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -73,6 +73,13 @@ class CompletionModelBase(BaseModel):
     vision: bool
     reasoning: bool
     base_url: Optional[str] = None
+    # GPT-5 specific fields
+    api_type: str = "chat_completions"
+    reasoning_effort: Optional[str] = None
+    verbosity: Optional[str] = None
+    capabilities: Optional[dict] = None
+    # Model enablement control
+    default_enabled: bool = True
 
 
 class CompletionModelCreate(CompletionModelBase):
@@ -122,6 +129,14 @@ class CompletionModelPublic(CompletionModel):
             vision=completion_model.vision,
             reasoning=completion_model.reasoning,
             base_url=completion_model.base_url,
+            # GPT-5 fields
+            api_type=getattr(completion_model, 'api_type', 'chat_completions'),
+            reasoning_effort=getattr(completion_model, 'reasoning_effort', None),
+            verbosity=getattr(completion_model, 'verbosity', None),
+            capabilities=getattr(completion_model, 'capabilities', None),
+            # Model enablement control
+            default_enabled=getattr(completion_model, 'default_enabled', True),
+            # Existing fields
             is_org_enabled=completion_model.is_org_enabled,
             is_org_default=completion_model.is_org_default,
             can_access=completion_model.can_access,
@@ -163,6 +178,10 @@ class Context(BaseModel):
 class ModelKwargs(BaseModel):
     temperature: Optional[float] = None
     top_p: Optional[float] = None
+    # GPT-5 specific fields - using Literal for validation
+    reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None
+    verbosity: Optional[Literal["low", "medium", "high"]] = None
+    reasoning_summary: Optional[Literal["disabled", "auto", "concise", "detailed"]] = None
 
 
 class CompletionModelSparse(CompletionModelBase, InDB):

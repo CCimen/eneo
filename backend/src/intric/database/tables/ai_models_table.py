@@ -1,7 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Enum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from intric.database.tables.base_class import BaseCrossReference, BasePublic
@@ -29,6 +30,18 @@ class CompletionModels(BasePublic):
     vision: Mapped[bool] = mapped_column(server_default="False")
     reasoning: Mapped[bool] = mapped_column(server_default="False")
     base_url: Mapped[Optional[str]] = mapped_column()
+    
+    # GPT-5 specific fields
+    api_type: Mapped[str] = mapped_column(
+        Enum('chat_completions', 'responses', name='api_type_enum'), 
+        server_default="chat_completions"
+    )
+    reasoning_effort: Mapped[str] = mapped_column(server_default="medium")
+    verbosity: Mapped[str] = mapped_column(server_default="medium")
+    capabilities: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    
+    # Model enablement control
+    default_enabled: Mapped[bool] = mapped_column(server_default="true")
 
 
 class CompletionModelSettings(BaseCrossReference):

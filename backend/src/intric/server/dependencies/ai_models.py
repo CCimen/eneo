@@ -1,4 +1,5 @@
 import os
+import os
 import pathlib
 
 import yaml
@@ -52,6 +53,17 @@ async def create_models(
 
         # create new models or update existing
         for model in models:
+            # Add default values for GPT-5 fields if missing
+            if "api_type" not in model:
+                model["api_type"] = "chat_completions"
+            if "reasoning_effort" not in model:
+                model["reasoning_effort"] = "medium"
+            if "verbosity" not in model:
+                model["verbosity"] = "medium"
+            # Add default value for default_enabled field if missing (backward compatibility)
+            if "default_enabled" not in model:
+                model["default_enabled"] = True
+            
             model = model_create(**model)
             if model.name not in existing_models_names:
                 await repository.create_model(model)

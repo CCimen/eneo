@@ -1,5 +1,50 @@
 completion_models:
   
+  - name: 'gpt-5'
+    nickname: 'GPT-5'
+    family: 'openai'
+    token_limit: 400000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'usa'
+    description: 'GPT-5: Complex reasoning, broad world knowledge, and code-heavy or multi-step agentic tasks'
+    org: OpenAI
+    vision: true
+    reasoning: true
+    api_type: 'responses'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
+
+  - name: 'gpt-5-mini'
+    nickname: 'GPT-5 Mini'
+    family: 'openai'
+    token_limit: 400000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'usa'
+    description: 'GPT-5 Mini: Cost-optimized reasoning and chat; balances speed, cost, and capability'
+    org: OpenAI
+    vision: true
+    reasoning: true
+    api_type: 'responses'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
+
+  - name: 'gpt-5-nano'
+    nickname: 'GPT-5 Nano'
+    family: 'openai'
+    token_limit: 400000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'usa'
+    description: 'GPT-5 Nano: High-throughput tasks, especially simple instruction-following or classification'
+    org: OpenAI
+    vision: false
+    reasoning: false
+    api_type: 'responses'
+    reasoning_effort: 'minimal'
+    verbosity: 'low'
+
   - name: 'gpt-4-turbo'
     nickname: 'GPT-4'
     family: 'openai'
@@ -11,6 +56,9 @@ completion_models:
     org: OpenAI
     vision: true
     reasoning: false
+    api_type: 'chat_completions'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
 
   - name: 'gpt-3.5-turbo'
     nickname: 'ChatGPT'
@@ -23,6 +71,9 @@ completion_models:
     org: OpenAI
     vision: false
     reasoning: false
+    api_type: 'chat_completions'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
 
   - name: 'o3-mini'
     nickname: 'o3-mini'
@@ -225,6 +276,57 @@ completion_models:
     org: Microsoft
     vision: false
     reasoning: true
+
+  - name: 'gpt-5-azure'
+    nickname: 'GPT-5 (Azure)'
+    family: 'azure'
+    token_limit: 272000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'swe'
+    deployment_name: 'gpt-5'
+    description: "Microsoft Azure's hosted version of OpenAI's GPT-5 model, offering complex reasoning, broad world knowledge, and code-heavy or multi-step agentic tasks. Input: 272K tokens, Output: 128K tokens."
+    org: Microsoft
+    vision: true
+    reasoning: true
+    api_type: 'responses'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
+    default_enabled: false
+
+  - name: 'gpt-5-mini-azure'
+    nickname: 'GPT-5 Mini (Azure)'
+    family: 'azure'
+    token_limit: 272000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'swe'
+    deployment_name: 'gpt-5-mini'
+    description: "Microsoft Azure's hosted version of OpenAI's GPT-5 Mini model, offering cost-optimized reasoning and chat; balances speed, cost, and capability. Input: 272K tokens, Output: 128K tokens."
+    org: Microsoft
+    vision: true
+    reasoning: true
+    api_type: 'responses'
+    reasoning_effort: 'medium'
+    verbosity: 'medium'
+    default_enabled: false
+
+  - name: 'gpt-5-nano-azure'
+    nickname: 'GPT-5 Nano (Azure)'
+    family: 'azure'
+    token_limit: 272000
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'swe'
+    deployment_name: 'gpt-5-nano'
+    description: "Microsoft Azure's hosted version of OpenAI's GPT-5 Nano model, designed for high-throughput tasks, especially simple instruction-following or classification. Input: 272K tokens, Output: 128K tokens."
+    org: Microsoft
+    vision: true
+    reasoning: true
+    api_type: 'responses'
+    reasoning_effort: 'minimal'
+    verbosity: 'low'
+    default_enabled: false
 
   - name: 'Meta-Llama-3_3-70B-Instruct'
     nickname: 'Llama 3.3'

@@ -70,6 +70,11 @@ class OpenAIException(Exception):
     pass
 
 
+class RetriableOpenAIError(Exception):
+    """Custom exception for OpenAI API errors that are safe to retry/fallback on."""
+    pass
+
+
 class ClaudeException(Exception):
     pass
 

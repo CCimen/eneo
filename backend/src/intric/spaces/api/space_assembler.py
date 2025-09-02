@@ -32,6 +32,9 @@ from intric.spaces.space_service import SpaceSecurityClassificationImpactAnalysi
 from intric.transcription_models.presentation import TranscriptionModelPublic
 from intric.users.user import UserInDB
 from intric.websites.presentation.website_models import WebsitePublic
+from intric.main.logging import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from intric.actors import ActorManager
@@ -330,11 +333,16 @@ class SpaceAssembler:
             for model in space.embedding_models
             if model.is_org_enabled
         ]
-        completion_models = [
-            self.completion_model_assembler.from_completion_model_to_model(completion_model=model)
-            for model in space.completion_models
-            if model.is_org_enabled
-        ]
+        completion_models = []
+        for model in space.completion_models:
+            if model.is_org_enabled:
+                try:
+                    assembled_model = self.completion_model_assembler.from_completion_model_to_model(completion_model=model)
+                    completion_models.append(assembled_model)
+                except Exception as e:
+                    logger.error(f"Error processing completion model {model.name}: {str(e)}")
+                    logger.exception("Full traceback:")
+                    raise
 
         transcription_models = [
             TranscriptionModelPublic.from_domain(model)

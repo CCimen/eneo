@@ -16,6 +16,7 @@ from intric.main.exceptions import (
     NotFoundException,
     UnauthorizedException,
 )
+from intric.main.logging import get_logger
 from intric.main.models import NOT_PROVIDED, ModelId, NotProvided
 from intric.spaces.api.space_models import SpaceMember, SpaceRoleValue
 from intric.spaces.space import Space
@@ -66,6 +67,7 @@ class SpaceService:
         self.user = user
         self.factory = factory
         self.repo = repo
+        self.logger = get_logger(__name__)
         self.user_repo = user_repo
         self.embedding_model_crud_service = embedding_model_crud_service
         self.completion_model_crud_service = completion_model_crud_service
@@ -156,10 +158,19 @@ class SpaceService:
 
         completion_models = None
         if completion_model_ids is not None:
-            completion_models = [
-                await self.completion_model_crud_service.get_completion_model(model_id=model_id)
-                for model_id in completion_model_ids
-            ]
+            completion_models = []
+            self.logger.debug(f"Space update for {space.name}: processing {len(completion_model_ids)} completion models")
+            for model_id in completion_model_ids:
+                self.logger.debug(f"Attempting to enable completion model {model_id} for space {space.name}")
+                try:
+                    model = await self.completion_model_crud_service.get_completion_model(model_id=model_id)
+                    # Log the model's access properties for debugging
+                    self.logger.debug(f"Model {model.name}: can_access={model.can_access}, is_locked={model.is_locked}, is_deprecated={model.is_deprecated}")
+                    completion_models.append(model)
+                    self.logger.debug(f"Successfully enabled completion model {model.name} ({model_id}) for space {space.name}")
+                except Exception as e:
+                    self.logger.error(f"Failed to enable completion model {model_id} for space {space.name}: {e}")
+                    raise
 
         embedding_models = None
         if embedding_model_ids is not None:

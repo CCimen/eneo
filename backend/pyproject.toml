@@ -8,7 +8,7 @@ authors = ["inooLabs"]
 python = "^3.11"
 fastapi = "^0"
 uvicorn = {extras = ["standard"], version = "^0.22.0"}
-openai = "^1.4"
+openai = "^1.99.9"
 python-dotenv = "^0.21.1"
 pydantic = {extras = ["email"], version = "^2"}
 tenacity = "^8.2.1"
@@ -86,7 +86,7 @@ line-length = 88
 exclude = [
     ".venv",
     "__pycache__",
-    ".git",
+    ".git", 
     ".pytest_cache",
     "build",
     "dist",
@@ -94,17 +94,21 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Minimal ruleset to start with
+# All rules
 select = [
-    "F",   # Pyflakes (correctness: undefined names, etc.)
-    "E9",  # pycodestyle “runtime”/syntax errors,
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade (for modern Python)
+    "B",   # flake8-bugbear (common bugs)
+    "I",   # isort
 ]
 
-# Basic ignores for formatter compatibility (kept for when E/W are enabled later)
-ignore = []
-
-[tool.ruff.lint.per-file-ignores]
-"**/__init__.py" = ["F401"]  # Allow re-exports without being flagged as unused
+# Basic ignores for formatter compatibility
+ignore = [
+    "E501",  # Line too long (formatter handles this)
+    "E203",  # Whitespace before ':'
+]
 
 [tool.ruff.format]
 quote-style = "double"

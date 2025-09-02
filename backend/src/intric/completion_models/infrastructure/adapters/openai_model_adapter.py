@@ -15,6 +15,7 @@ from intric.completion_models.infrastructure.adapters.base_adapter import (
 from intric.files.file_models import File
 from intric.logging.logging import LoggingDetails
 from intric.main.config import get_settings
+from intric.main.exceptions import RetriableOpenAIError
 from intric.main.logging import get_logger
 
 logger = get_logger(__name__)
@@ -135,13 +136,53 @@ class OpenAIModelAdapter(CompletionModelAdapter):
         model_kwargs: ModelKwargs | None = None,
     ):
         query = self.create_query_from_context(context=context)
-        return await get_response_open_ai.get_response(
-            client=self.client,
-            model_name=self.model.name,
-            messages=query,
-            model_kwargs=self._get_kwargs(model_kwargs),
-            extra_headers=self.extra_headers,
-        )
+        
+        # Use explicit configuration for routing
+        api_type = getattr(self.model, "api_type", None)
+        
+        # Prefer api_type, with a temporary guard for unmigrated legacy rows.
+        # This guard must be removed post-rollout.
+        if api_type == "responses" or (api_type is None and self.model.name.startswith("gpt-5")):
+            try:
+                # Import here to avoid circular dependency
+                from intric.completion_models.infrastructure import get_response_gpt5
+                
+                # Extract GPT-5 specific parameters
+                reasoning_effort = model_kwargs.reasoning_effort if model_kwargs else None
+                verbosity = model_kwargs.verbosity if model_kwargs else None
+                
+                # Use model defaults if not specified
+                reasoning_effort = reasoning_effort or getattr(self.model, "reasoning_effort", "medium")
+                verbosity = verbosity or getattr(self.model, "verbosity", "medium")
+                
+                return await get_response_gpt5.get_response_gpt5(
+                    client=self.client,
+                    model_name=self.model.name,
+                    messages=query,
+                    model_kwargs=self._get_kwargs(model_kwargs),
+                    reasoning_effort=reasoning_effort,
+                    verbosity=verbosity,
+                    extra_headers=self.extra_headers,
+                )
+            except RetriableOpenAIError as e:
+                # Fallback ONLY on retriable errors (5xx, timeouts, 429s).
+                # DO NOT fall back on 4xx validation errors.
+                logger.warning(f"Responses API failed for {self.model.name}; falling back: {e}")
+                return await get_response_open_ai.get_response(
+                    client=self.client,
+                    model_name=self.model.name,
+                    messages=query,
+                    model_kwargs=self._get_kwargs(model_kwargs),
+                    extra_headers=self.extra_headers,
+                )
+        else:
+            return await get_response_open_ai.get_response(
+                client=self.client,
+                model_name=self.model.name,
+                messages=query,
+                model_kwargs=self._get_kwargs(model_kwargs),
+                extra_headers=self.extra_headers,
+            )
 
     def get_response_streaming(
         self,
@@ -150,11 +191,51 @@ class OpenAIModelAdapter(CompletionModelAdapter):
     ):
         query = self.create_query_from_context(context=context)
         tools = self._build_tools_from_context(context=context)
-        return get_response_open_ai.get_response_streaming(
-            client=self.client,
-            model_name=self.model.name,
-            messages=query,
-            model_kwargs=self._get_kwargs(model_kwargs),
-            tools=tools,
-            extra_headers=self.extra_headers,
-        )
+        
+        # Use explicit configuration for routing
+        api_type = getattr(self.model, "api_type", None)
+        
+        # Prefer api_type, with a temporary guard for unmigrated legacy rows.
+        if api_type == "responses" or (api_type is None and self.model.name.startswith("gpt-5")):
+            try:
+                # Import here to avoid circular dependency
+                from intric.completion_models.infrastructure import get_response_gpt5
+                
+                # Extract GPT-5 specific parameters
+                reasoning_effort = model_kwargs.reasoning_effort if model_kwargs else None
+                verbosity = model_kwargs.verbosity if model_kwargs else None
+                
+                # Use model defaults if not specified
+                reasoning_effort = reasoning_effort or getattr(self.model, "reasoning_effort", "medium")
+                verbosity = verbosity or getattr(self.model, "verbosity", "medium")
+                
+                return get_response_gpt5.get_response_gpt5_streaming(
+                    client=self.client,
+                    model_name=self.model.name,
+                    messages=query,
+                    model_kwargs=self._get_kwargs(model_kwargs),
+                    reasoning_effort=reasoning_effort,
+                    verbosity=verbosity,
+                    tools=tools,
+                    extra_headers=self.extra_headers,
+                )
+            except RetriableOpenAIError as e:
+                # Fallback ONLY on retriable errors
+                logger.warning(f"Responses API streaming failed for {self.model.name}; falling back: {e}")
+                return get_response_open_ai.get_response_streaming(
+                    client=self.client,
+                    model_name=self.model.name,
+                    messages=query,
+                    model_kwargs=self._get_kwargs(model_kwargs),
+                    tools=tools,
+                    extra_headers=self.extra_headers,
+                )
+        else:
+            return get_response_open_ai.get_response_streaming(
+                client=self.client,
+                model_name=self.model.name,
+                messages=query,
+                model_kwargs=self._get_kwargs(model_kwargs),
+                tools=tools,
+                extra_headers=self.extra_headers,
+            )

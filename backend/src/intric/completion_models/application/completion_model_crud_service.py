@@ -1,8 +1,11 @@
 from typing import TYPE_CHECKING, Optional, Union
 
-from intric.completion_models.domain import ModelFamily
+from intric.completion_models.domain import ModelFamily, ModelHostingLocation
 from intric.main.config import SETTINGS
 from intric.main.exceptions import UnauthorizedException
+from intric.main.logging import get_logger
+
+logger = get_logger(__name__)
 from intric.main.models import NOT_PROVIDED, ModelId, NotProvided
 from intric.roles.permissions import Permission, validate_permissions
 
@@ -43,7 +46,22 @@ class CompletionModelCRUDService:
         completion_model = await self.completion_model_repo.one(model_id=model_id)
 
         if not completion_model.can_access:
-            raise UnauthorizedException()
+            # Provide detailed error message for debugging
+            error_details = []
+            if completion_model.is_locked:
+                error_details.append("model is locked (check hosting modules)")
+            if completion_model.is_deprecated:
+                error_details.append("model is deprecated")
+            if hasattr(completion_model, 'has_tenant_settings') and completion_model.has_tenant_settings:
+                if not completion_model.is_org_enabled:
+                    error_details.append("model not enabled for organization")
+            else:
+                if hasattr(completion_model, 'default_enabled') and not completion_model.default_enabled:
+                    error_details.append("model not enabled by default")
+            
+            detailed_reason = f" - {', '.join(error_details)}" if error_details else ""
+            logger.error(f"Access denied to model '{completion_model.name}'{detailed_reason}")
+            raise UnauthorizedException(f"Model '{completion_model.name}' not accessible{detailed_reason}")
 
         return completion_model
 

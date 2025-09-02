@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Union
 
+from intric.main.config import SETTINGS
 from intric.main.models import ResourcePermission
 from intric.modules.module import Modules
 from intric.roles.permissions import Permission

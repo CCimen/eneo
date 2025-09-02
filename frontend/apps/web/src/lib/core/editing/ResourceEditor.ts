@@ -58,6 +58,7 @@ export function createResourceEditor<T extends Resource, Defs extends Defaults<T
       const changes = field
         ? ({ [field]: $update[field] } as unknown as { [key in keyof T]: T[key] })
         : get(currentChanges).diff;
+      
       // Check if some files have been removed
       // We could also directly remove files from the backend when the remove file button in the ui is clicked,
       // however this would be an irreversible change. If we delay the deletion until we save the resource,
@@ -86,10 +87,28 @@ export function createResourceEditor<T extends Resource, Defs extends Defaults<T
         });
       }
     } catch (e) {
-      alert("Error while trying to update!");
+      console.error('ResourceEditor: Save operation failed');
+      console.error('ResourceEditor: Error details:', e);
+      
+      let errorMessage = "Error while trying to update!";
+      let detailedMessage = "Unknown error occurred";
+      
       if (e instanceof IntricError) {
-        console.error(e.getReadableMessage());
+        detailedMessage = e.getReadableMessage();
+        errorMessage += `\n\nDetails: ${detailedMessage}`;
+        console.error('ResourceEditor: IntricError details:', detailedMessage);
+        console.error('ResourceEditor: HTTP Status:', e.status);
+        console.error('ResourceEditor: Full error response:', e.response);
+      } else if (e instanceof Error) {
+        detailedMessage = e.message;
+        errorMessage += `\n\nDetails: ${detailedMessage}`;
+        console.error('ResourceEditor: Standard Error:', e.message);
+        console.error('ResourceEditor: Stack trace:', e.stack);
+      } else {
+        console.error('ResourceEditor: Non-standard error type:', typeof e, e);
       }
+      
+      alert(errorMessage);
     }
     isSaving.set(false);
   }

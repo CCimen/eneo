@@ -28,7 +28,7 @@ logging.getLogger("passlib").setLevel(logging.ERROR)
 # Alembic command
 def run_alembic_migrations():
     try:
-        subprocess.run(["poetry", "run", "alembic", "upgrade", "head"], check=True)
+        subprocess.run(["poetry", "run", "alembic", "upgrade", "heads"], check=True)
         print("Alembic migrations ran successfully.")
     except subprocess.CalledProcessError as e:
         print(f"Error running alembic migrations: {e}")
@@ -117,51 +117,182 @@ def add_tenant_user(conn, tenant_name, quota_limit, user_name, user_email, user_
             )
             cur.execute(assign_role_to_user_query, (user_id, predefined_role_id))
 
-        # Add completion model if it doesn't exist - FIXED: Added reasoning column
-        check_model_query = sql.SQL("SELECT id FROM completion_models WHERE name = %s")
-        cur.execute(check_model_query, ("gpt-4o",))
-        model = cur.fetchone()
+        # Add completion models if they don't exist
+        models_to_add = [
+            {
+                "name": "gpt-4o",
+                "nickname": "GPT-4o",
+                "family": "openai",
+                "token_limit": 128000,
+                "stability": "stable",
+                "hosting": "usa",
+                "description": "OpenAI's latest and greatest model, trained on both text and images.",
+                "org": "OpenAI",
+                "vision": True,
+                "reasoning": False,
+                "api_type": "chat_completions",
+                "reasoning_effort": "medium",
+                "verbosity": "medium"
+            },
+            {
+                "name": "gpt-5",
+                "nickname": "GPT-5",
+                "family": "openai",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "usa",
+                "description": "GPT-5: Complex reasoning, broad world knowledge, and code-heavy or multi-step agentic tasks",
+                "org": "OpenAI",
+                "vision": True,
+                "reasoning": True,
+                "api_type": "responses",
+                "reasoning_effort": "medium",
+                "verbosity": "medium"
+            },
+            {
+                "name": "gpt-5-mini",
+                "nickname": "GPT-5 Mini",
+                "family": "openai",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "usa",
+                "description": "GPT-5 Mini: Cost-optimized reasoning and chat; balances speed, cost, and capability",
+                "org": "OpenAI",
+                "vision": True,
+                "reasoning": True,
+                "api_type": "responses",
+                "reasoning_effort": "medium",
+                "verbosity": "medium"
+            },
+            {
+                "name": "gpt-5-nano",
+                "nickname": "GPT-5 Nano",
+                "family": "openai",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "usa",
+                "description": "GPT-5 Nano: High-throughput tasks, especially simple instruction-following or classification",
+                "org": "OpenAI",
+                "vision": False,
+                "reasoning": False,
+                "api_type": "responses",
+                "reasoning_effort": "minimal",
+                "verbosity": "low"
+            },
+            # Azure GPT-5 Models
+            {
+                "name": "gpt-5-azure",
+                "nickname": "GPT-5 (Azure)",
+                "family": "azure",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "azure",
+                "description": "GPT-5 via Azure: Complex reasoning, broad world knowledge, and code-heavy or multi-step agentic tasks",
+                "org": "Microsoft",
+                "vision": True,
+                "reasoning": True,
+                "api_type": "responses",
+                "reasoning_effort": "medium",
+                "verbosity": "medium"
+            },
+            {
+                "name": "gpt-5-mini-azure",
+                "nickname": "GPT-5 Mini (Azure)",
+                "family": "azure",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "azure",
+                "description": "GPT-5 Mini via Azure: Cost-optimized reasoning and chat; balances speed, cost, and capability",
+                "org": "Microsoft",
+                "vision": True,
+                "reasoning": True,
+                "api_type": "responses",
+                "reasoning_effort": "medium",
+                "verbosity": "medium"
+            },
+            {
+                "name": "gpt-5-nano-azure",
+                "nickname": "GPT-5 Nano (Azure)",
+                "family": "azure",
+                "token_limit": 400000,
+                "stability": "stable",
+                "hosting": "azure",
+                "description": "GPT-5 Nano via Azure: High-throughput tasks, especially simple instruction-following or classification",
+                "org": "Microsoft",
+                "vision": False,
+                "reasoning": False,
+                "api_type": "responses",
+                "reasoning_effort": "minimal",
+                "verbosity": "low"
+            }
+        ]
+        
+        model_id = None
+        for model_data in models_to_add:
+            check_model_query = sql.SQL("SELECT id FROM completion_models WHERE name = %s")
+            cur.execute(check_model_query, (model_data["name"],))
+            model = cur.fetchone()
 
-        if model is None:
-            add_model_query = sql.SQL(
-                """INSERT INTO completion_models 
-                (name, nickname, family, token_limit, stability, hosting, description, org, vision, reasoning) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"""
-            )
-            cur.execute(
-                add_model_query,
-                (
-                    "gpt-4o",
-                    "GPT-4o",
-                    "openai",
-                    128000,
-                    "stable",
-                    "usa",
-                    "OpenAI's latest and greatest model, trained on both text and images.",
-                    "OpenAI",
-                    True,   # vision
-                    False,  # reasoning - gpt-4o is not a reasoning model
-                ),
-            )
-            model_id = cur.fetchone()[0]
-        else:
-            model_id = model[0]
+            if model is None:
+                add_model_query = sql.SQL(
+                    """INSERT INTO completion_models 
+                    (name, nickname, family, token_limit, stability, hosting, description, org, vision, reasoning, api_type, reasoning_effort, verbosity) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id"""
+                )
+                cur.execute(
+                    add_model_query,
+                    (
+                        model_data["name"],
+                        model_data["nickname"],
+                        model_data["family"],
+                        model_data["token_limit"],
+                        model_data["stability"],
+                        model_data["hosting"],
+                        model_data["description"],
+                        model_data["org"],
+                        model_data["vision"],
+                        model_data["reasoning"],
+                        model_data["api_type"],
+                        model_data["reasoning_effort"],
+                        model_data["verbosity"],
+                    ),
+                )
+                current_model_id = cur.fetchone()[0]
+                # Keep track of the first model id for backward compatibility
+                if model_id is None:
+                    model_id = current_model_id
+            else:
+                current_model_id = model[0]
+                if model_id is None:
+                    model_id = current_model_id
 
-        # Enable the completion model for the tenant
-        check_model_setting_query = sql.SQL(
-            """SELECT 1 FROM completion_model_settings 
-            WHERE completion_model_id = %s AND tenant_id = %s"""
-        )
-        cur.execute(check_model_setting_query, (model_id, tenant_id))
-        model_setting = cur.fetchone()
+        # Enable all GPT models for the tenant
+        for model_data in models_to_add:
+            # Get the model ID for each model
+            check_model_query = sql.SQL("SELECT id FROM completion_models WHERE name = %s")
+            cur.execute(check_model_query, (model_data["name"],))
+            model_result = cur.fetchone()
+            
+            if model_result:
+                current_model_id = model_result[0]
+                
+                # Check if model setting exists
+                check_model_setting_query = sql.SQL(
+                    """SELECT 1 FROM completion_model_settings 
+                    WHERE completion_model_id = %s AND tenant_id = %s"""
+                )
+                cur.execute(check_model_setting_query, (current_model_id, tenant_id))
+                model_setting = cur.fetchone()
 
-        if model_setting is None:
-            enable_model_query = sql.SQL(
-                """INSERT INTO completion_model_settings 
-                (completion_model_id, tenant_id, is_org_enabled, is_org_default) 
-                VALUES (%s, %s, %s, %s)"""
-            )
-            cur.execute(enable_model_query, (model_id, tenant_id, True, True))
+                if model_setting is None:
+                    # Only set gpt-4o as default, others are just enabled
+                    is_default = model_data["name"] == "gpt-4o"
+                    enable_model_query = sql.SQL(
+                        """INSERT INTO completion_model_settings 
+                        (completion_model_id, tenant_id, is_org_enabled, is_org_default) 
+                        VALUES (%s, %s, %s, %s)"""
+                    )
+                    cur.execute(enable_model_query, (current_model_id, tenant_id, True, is_default))
 
         conn.commit()
         cur.close()

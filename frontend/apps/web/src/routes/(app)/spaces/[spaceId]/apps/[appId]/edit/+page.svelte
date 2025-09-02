@@ -16,6 +16,8 @@
   import PublishingSetting from "$lib/features/publishing/components/PublishingSetting.svelte";
   import { page } from "$app/state";
   import { supportsTemperature } from "$lib/features/ai-models/supportsTemperature.js";
+  import { supportsGpt5Settings } from "$lib/features/ai-models/supportsGpt5Settings.js";
+  import GPT5Settings from "$lib/features/ai-models/components/GPT5Settings.svelte";
 
   export let data;
   const {
@@ -32,6 +34,77 @@
     intric: data.intric,
     onUpdateDone() {
       refreshCurrentSpace("applications");
+    }
+  });
+
+  import { tick } from 'svelte';
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  
+  // Helper function to strip GPT-5 specific fields
+  function stripGpt5Kwargs() {
+    update.update((u) => {
+      const k: any = u.completion_model_kwargs ?? {};
+      if ('reasoning_effort' in k || 'verbosity' in k || 'reasoning_summary' in k) {
+        const { reasoning_effort, verbosity, reasoning_summary, ...rest } = k;
+        return { ...u, completion_model_kwargs: rest };
+      }
+      return u; // No changes needed
+    });
+  }
+  
+  // Shallow equality check to prevent unnecessary updates
+  function shallowEqual(a: any, b: any) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    const ak = Object.keys(a), bk = Object.keys(b);
+    if (ak.length !== bk.length) return false;
+    for (const k of ak) if (a[k] !== b[k]) return false;
+    return true;
+  }
+  
+  // Centralized kwArgs merge function - ONLY the parent writes to the store
+  function mergeKwargs(patch: Record<string, any>) {
+    update.update((u) => {
+      const current = u.completion_model_kwargs ?? {};
+      const base = { ...current, ...patch };
+      
+      // Enforce GPT-5 temperature if needed
+      if (supportsGpt5Settings(u.completion_model?.name)) {
+        base.temperature = 1.0;
+      }
+      
+      // Prevent unnecessary updates
+      if (shallowEqual(base, current)) {
+        return u; // No-op, prevents reactive churn
+      }
+      
+      return { ...u, completion_model_kwargs: base };
+    });
+  }
+  
+  // Helper to ensure GPT-5 defaults are set
+  function ensureGpt5Kwargs() {
+    const currentUpdate = get(update);
+    const k: any = currentUpdate.completion_model_kwargs ?? {};
+    
+    // Only add defaults if missing
+    const patch: any = {};
+    if (k.reasoning_effort === undefined) patch.reasoning_effort = "medium";
+    if (k.verbosity === undefined) patch.verbosity = "medium";
+    if (k.reasoning_summary === undefined) patch.reasoning_summary = "disabled";
+    if (k.temperature !== 1.0) patch.temperature = 1.0;
+    
+    if (Object.keys(patch).length > 0) {
+      mergeKwargs(patch);
+    }
+  }
+  
+  onMount(() => {
+    // Only initialize if we have a GPT-5 model selected
+    const currentModel = get(update).completion_model;
+    if (currentModel?.id && supportsGpt5Settings(currentModel.name)) {
+      ensureGpt5Kwargs();
     }
   });
 
@@ -252,11 +325,30 @@
           let:aria
         >
           <SelectBehaviourV2
-            bind:kwArgs={$update.completion_model_kwargs}
+            kwArgs={$update.completion_model_kwargs}
             isDisabled={!supportsTemperature($update.completion_model.name)}
+            modelName={$update.completion_model?.name}
+            on:kwargsChange={(e) => mergeKwargs(e.detail)}
             {aria}
           ></SelectBehaviourV2>
         </Settings.Row>
+
+        {#if typeof window !== 'undefined' && $update?.completion_model?.name && supportsGpt5Settings($update.completion_model.name)}
+          <Settings.Row
+            title="GPT-5 Settings"
+            description="Configure reasoning effort and verbosity levels for GPT-5 models."
+            hasChanges={$currentChanges.diff.completion_model_kwargs !== undefined}
+            revertFn={() => {
+              discardChanges("completion_model_kwargs");
+            }}
+          >
+            <GPT5Settings
+              kwArgs={$update.completion_model_kwargs}
+              isDisabled={false}
+              on:kwargsChange={(e) => mergeKwargs(e.detail)}
+            ></GPT5Settings>
+          </Settings.Row>
+        {/if}
       </Settings.Group>
     </Settings.Page>
   </Page.Main>

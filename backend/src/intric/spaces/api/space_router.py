@@ -30,7 +30,9 @@ from intric.spaces.api.space_models import (
     UpdateSpaceRequest,
 )
 from intric.websites.presentation.website_models import WebsiteCreate, WebsitePublic
+from intric.main.logging import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -415,9 +417,20 @@ async def remove_space_member(
 async def get_personal_space(
     container: Container = Depends(get_container(with_user=True)),
 ):
-    service = container.space_init_service()
-    assembler = container.space_assembler()
+    logger.info("get_personal_space endpoint called")
+    try:
+        service = container.space_init_service()
+        logger.debug("Got space_init_service")
+        assembler = container.space_assembler()
+        logger.debug("Got space_assembler")
 
-    space = await service.get_personal_space()
+        space = await service.get_personal_space()
+        logger.debug(f"Got personal space: {space.id if space else 'None'}")
 
-    return assembler.from_space_to_model(space)
+        result = assembler.from_space_to_model(space)
+        logger.debug("Successfully assembled space model")
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_personal_space: {str(e)}")
+        logger.exception("Full traceback:")
+        raise

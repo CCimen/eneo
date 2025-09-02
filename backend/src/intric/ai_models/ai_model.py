@@ -39,6 +39,8 @@ class AIModel(Entity):
         created_at: Optional["datetime"] = None,
         updated_at: Optional["datetime"] = None,
         security_classification: Optional["SecurityClassification"] = None,
+        default_enabled: bool = True,
+        has_tenant_settings: bool = True,
     ):
         super().__init__(id, created_at, updated_at)
         self.user = user
@@ -54,22 +56,48 @@ class AIModel(Entity):
         self.is_deprecated = is_deprecated
         self.is_org_enabled = is_org_enabled
         self.security_classification = security_classification
+        self.default_enabled = default_enabled
+        self.has_tenant_settings = has_tenant_settings
 
     @property
     def is_locked(self):
+        from intric.main.logging import get_logger
+        logger = get_logger(__name__)
+        
         if self.hosting == ModelHostingLocation.EU:
             if Modules.EU_HOSTING not in self.user.modules:
+                logger.debug(f"Model {self.name} locked: EU hosting required but user doesn't have EU_HOSTING module")
                 return True
 
         if self.hosting == ModelHostingLocation.SWE:
             if Modules.SWE_HOSTING not in self.user.modules:
+                logger.debug(f"Model {self.name} locked: SWE hosting required but user doesn't have SWE_HOSTING module")
+                logger.debug(f"Required module: {Modules.SWE_HOSTING}, User modules: {[str(m) for m in self.user.modules]}")
                 return True
 
+        logger.debug(f"Model {self.name} unlocked: hosting={self.hosting}")
         return False
 
     @property
     def can_access(self):
-        return not self.is_locked and not self.is_deprecated and self.is_org_enabled
+        from intric.main.logging import get_logger
+        logger = get_logger(__name__)
+        
+        # Fallback logic for model access:
+        # - If CompletionModelSettings exists (has_tenant_settings=True): use is_org_enabled
+        # - If no tenant settings exist (has_tenant_settings=False): fallback to default_enabled
+        if self.has_tenant_settings:
+            access_enabled = self.is_org_enabled
+            logger.debug(f"Model {self.name}: has_tenant_settings=True, is_org_enabled={access_enabled}")
+        else:
+            access_enabled = self.default_enabled
+            logger.debug(f"Model {self.name}: has_tenant_settings=False, default_enabled={access_enabled}")
+            
+        is_locked = self.is_locked
+        is_deprecated = self.is_deprecated
+        can_access = not is_locked and not is_deprecated and access_enabled
+        
+        return can_access
 
     def meets_security_classification(
         self, security_classification: Optional["SecurityClassification"] = None

@@ -19,6 +19,9 @@ export type ModelBehaviour = keyof typeof behaviours;
 export type ModelKwArgs = {
   temperature?: number | null | undefined;
   top_p?: number | null | undefined;
+  reasoning_effort?: "minimal" | "low" | "medium" | "high" | null | undefined;
+  verbosity?: "low" | "medium" | "high" | null | undefined;
+  reasoning_summary?: "disabled" | "auto" | "concise" | "detailed" | null | undefined;
 };
 
 export const behaviourList = Object.keys(behaviours) as ModelBehaviour[];

@@ -48,6 +48,14 @@ class CompletionModel(AIModel):
         reasoning: bool,
         base_url: Optional[str] = None,
         security_classification: Optional[SecurityClassification] = None,
+        # GPT-5 specific fields - all optional for backward compatibility
+        api_type: Optional[str] = None,
+        reasoning_effort: Optional[str] = None, 
+        verbosity: Optional[str] = None,
+        capabilities: Optional[dict] = None,
+        # Fallback logic fields
+        default_enabled: bool = True,
+        has_tenant_settings: bool = True,
     ):
         super().__init__(
             user=user,
@@ -66,6 +74,8 @@ class CompletionModel(AIModel):
             is_deprecated=is_deprecated,
             is_org_enabled=is_org_enabled,
             security_classification=security_classification,
+            default_enabled=default_enabled,
+            has_tenant_settings=has_tenant_settings,
         )
 
         self.base_url = base_url
@@ -75,6 +85,11 @@ class CompletionModel(AIModel):
         self.token_limit = token_limit
         self.deployment_name = deployment_name
         self.nr_billion_parameters = nr_billion_parameters
+        # GPT-5 specific attributes - with safe defaults
+        self.api_type = api_type or "chat_completions"
+        self.reasoning_effort = reasoning_effort or "medium"
+        self.verbosity = verbosity or "medium"
+        self.capabilities = capabilities
 
     @classmethod
     def create_from_db(
@@ -88,11 +103,13 @@ class CompletionModel(AIModel):
             is_org_default = False
             updated_at = completion_model_db.updated_at
             security_classification = None
+            has_tenant_settings = False  # No settings exist for this tenant
         else:
             is_org_enabled = completion_model_settings.is_org_enabled
             is_org_default = completion_model_settings.is_org_default
             updated_at = completion_model_settings.updated_at
             security_classification = completion_model_settings.security_classification
+            has_tenant_settings = True  # Settings exist for this tenant
 
         org = (
             None
@@ -126,4 +143,12 @@ class CompletionModel(AIModel):
             security_classification=SecurityClassification.to_domain(
                 db_security_classification=security_classification
             ),
+            # GPT-5 specific fields with safe defaults
+            api_type=getattr(completion_model_db, "api_type", "chat_completions"),
+            reasoning_effort=getattr(completion_model_db, "reasoning_effort", "medium"),
+            verbosity=getattr(completion_model_db, "verbosity", "medium"),
+            capabilities=getattr(completion_model_db, "capabilities", None),
+            # Fallback logic fields
+            default_enabled=getattr(completion_model_db, "default_enabled", True),
+            has_tenant_settings=has_tenant_settings,
         )

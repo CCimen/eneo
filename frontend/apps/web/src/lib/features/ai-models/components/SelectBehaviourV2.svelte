@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { AriaProps } from "$lib/core/AriaUtils";
   import {
     behaviourList,
     getBehaviour,
@@ -6,15 +7,25 @@
     type ModelBehaviour,
     type ModelKwArgs
   } from "../ModelBehaviours";
+  import { supportsGpt5Settings } from "../supportsGpt5Settings";
   import { createSelect } from "@melt-ui/svelte";
   import { IconChevronDown } from "@intric/icons/chevron-down";
   import { IconCheck } from "@intric/icons/check";
   import { IconQuestionMark } from "@intric/icons/question-mark";
   import { Input, Tooltip } from "@intric/ui";
+  import { createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher();
 
   export let kwArgs: ModelKwArgs;
   export let isDisabled: boolean;
+  export let modelName: string | undefined = undefined;
   export let aria: AriaProps = { "aria-label": "Select model behaviour" };
+
+  // helper: keep only defined keys
+  function pickDefined<T extends Record<string, any>>(obj: T) {
+    return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+  }
 
   const {
     elements: { trigger, menu, option },
@@ -29,25 +40,51 @@
     },
     portal: null,
     onSelectedChange: ({ next }) => {
-      const args = next?.value ? getKwargs(next.value) : getKwargs("default");
-      // If the user selects "custom", we want to keep the current kwargs settings if they already are custom
-      // However, if they are not, then we initialise with a default custom setting
+      const selectedBehaviour = next?.value;
+      
+      // What the behaviour preset wants (usually temperature / top_p)
+      const behaviourArgs = selectedBehaviour ? getKwargs(selectedBehaviour) : getKwargs("default");
+      
+      // Fallback for "custom"
+      const defaultTemp = supportsGpt5Settings(modelName) ? 1.0 : 1;
       const customArgs =
-        getBehaviour(kwArgs) === "custom" ? kwArgs : { temperature: 1, top_p: null };
-      // keep in mind: setting the kwargs will trigger the `watchKwArgs` function
-      kwArgs = args ? args : customArgs;
+        getBehaviour(kwArgs) === "custom" ? kwArgs : { temperature: defaultTemp, top_p: null };
+      
+      // Start from behaviour (or custom) args
+      let patch = behaviourArgs ?? customArgs;
+      
+      if (supportsGpt5Settings(modelName)) {
+        // Preserve existing GPT-5 fields (do not override them)
+        patch = {
+          ...patch,
+          temperature: 1.0,
+          reasoning_effort: kwArgs?.reasoning_effort,
+          verbosity: kwArgs?.verbosity,
+          reasoning_summary: kwArgs?.reasoning_summary
+        };
+      }
+      
+      // Emit patch to parent instead of mutating kwArgs
+      dispatch("kwargsChange", patch);
       return next;
     }
   });
 
   // This function will only be called on direct user input of custom temperature
-  // If the selected value is not a named value, it will set the Kwargs
+  // If the selected value is not a named value, it will emit a patch
   // This can't be a declarative statement with $: as it would fire in too many situations
   let customTemp: number = 1;
   function maybeSetKwArgsCustom() {
+    // For GPT-5 models, temperature is locked to 1.0
+    if (supportsGpt5Settings(modelName)) {
+      customTemp = 1.0;
+      return;
+    }
+    
     const args = { temperature: customTemp, top_p: null };
     if (getBehaviour(args) === "custom") {
-      kwArgs = args;
+      // Emit patch instead of mutating
+      dispatch("kwargsChange", args);
     }
   }
 
@@ -57,6 +94,10 @@
       return;
     }
 
+    // DON'T modify kwArgs here for GPT-5 temperature!
+    // This causes infinite loops. The temperature should be
+    // enforced when the user selects a behavior, not in the watcher.
+    
     const behaviour = getBehaviour(currentKwArgs);
 
     if ($selected?.value !== behaviour) {
@@ -121,7 +162,9 @@
     <div class="flex items-center gap-2">
       <p class="w-24" aria-label="Temperature setting" id="temperature_label">Temperature</p>
       <Tooltip
-        text="Randomness: A value between 0 and 2 (Default: 1)\nHigher values will create more creative responses.\nLower values will be more deterministic."
+        text={supportsGpt5Settings(modelName) 
+          ? "Temperature is fixed at 1.0 for GPT-5 models and cannot be changed." 
+          : "Randomness: A value between 0 and 2 (Default: 1)\nHigher values will create more creative responses.\nLower values will be more deterministic."}
       >
         <IconQuestionMark class="text-muted hover:text-primary" />
       </Tooltip>
@@ -139,6 +182,7 @@
       step={0.01}
       max={2}
       min={0}
+      disabled={supportsGpt5Settings(modelName)}
       hiddenLabel={true}
     ></Input.Number>
   </div>
@@ -149,6 +193,12 @@
     class="label-warning border-label-default bg-label-dimmer text-label-stronger mt-2.5 rounded-md border px-2 py-1 text-sm"
   >
     <span class="font-bold">Warning:&nbsp;</span>Temperature settings not available for this model.
+  </p>
+{:else if supportsGpt5Settings(modelName) && $selected?.value === "custom"}
+  <p
+    class="label-info border-label-default bg-label-dimmer text-label-stronger mt-2.5 rounded-md border px-2 py-1 text-sm"
+  >
+    <span class="font-bold">Info:&nbsp;</span>Temperature is fixed at 1.0 for GPT-5 models and cannot be modified.
   </p>
 {/if}
 
