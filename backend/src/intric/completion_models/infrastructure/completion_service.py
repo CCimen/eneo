@@ -26,7 +26,10 @@ from intric.info_blobs.info_blob import InfoBlobChunkInDBWithScore
 from intric.main.config import SETTINGS
 from intric.main.logging import get_logger
 from intric.sessions.session import SessionInDB
-from intric.vision_models.infrastructure.flux_ai import FluxAdapter
+import litellm
+import os
+import pathlib
+import yaml
 
 if TYPE_CHECKING:
     from intric.completion_models.infrastructure.adapters.base_adapter import (
@@ -38,10 +41,93 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def generate_image(prompt: str):
-    flux = FluxAdapter()
+def _get_default_image_model() -> str:
+    """Load default image generation model from ai_models.yml configuration"""
+    try:
+        # Load from the same ai_models.yml file used by the rest of the system
+        config_path = os.path.join(
+            pathlib.Path(__file__).parent.parent.parent, 
+            "server", "dependencies", "ai_models.yml"
+        )
+        with open(config_path, "r") as file:
+            data = yaml.safe_load(file)
+            
+        # Get first available image generation model
+        image_models = data.get("image_generation_models", [])
+        if image_models:
+            default_model = image_models[0]  # Use first model as default
+            return default_model["litellm_model_name"]
+            
+    except Exception as e:
+        logger.warning(f"[Image Tool] Could not load from ai_models.yml: {e}")
+        
+    # Fallback to hardcoded Azure model
+    return "azure/gpt-image-1"
 
-    return await flux.generate_image(prompt=prompt)
+
+async def generate_image(prompt: str, model: str = None):
+    """Generate image using LiteLLM - supports Azure, Gemini, OpenAI (replaces FluxAdapter)
+    
+    Args:
+        prompt: The text prompt for image generation
+        model: LiteLLM model name (e.g., "azure/gpt-image-1", "gemini/gemini-2.0-flash-exp-image-generation")
+               If None, defaults to Azure deployment
+    """
+    from intric.main.logging import get_logger
+    import litellm
+    import base64
+    
+    logger = get_logger(__name__)
+    logger.info(f"[Image Tool] Generate image called with prompt: {prompt[:50]}...")
+    
+    try:
+        # Load model from configuration if not specified
+        if model is None:
+            model = _get_default_image_model()  # Load from ai_models.yml
+        
+        # Support switching to Gemini via environment variable for testing
+        if model == "gemini" or model == "gemini/gemini-2.0-flash-exp-image-generation":
+            model = "gemini/gemini-2.0-flash-exp-image-generation"
+        
+        logger.info(f"[Image Tool] Using model: {model}")
+        
+        # Use LiteLLM directly for different providers
+        if model.startswith("gemini/"):
+            # Gemini uses completion API with modalities (per litellm_docs_gemini.md)
+            logger.info(f"[Image Tool] Using Gemini completion API")
+            response = await litellm.acompletion(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                modalities=["image", "text"]
+            )
+            # Extract base64 from Gemini response
+            image_data_url = response.choices[0].message.images[0]["image_url"]["url"]
+            # Remove data:image/png;base64, prefix and decode
+            base64_string = image_data_url.split(",")[1] if "," in image_data_url else image_data_url
+        else:
+            # Azure/OpenAI use image_generation API
+            logger.info(f"[Image Tool] Using standard image_generation API") 
+            response = litellm.image_generation(
+                model=model,
+                prompt=prompt,
+                size="1024x1024",
+                quality="medium",  # Azure format
+                output_format="png",
+                n=1
+            )
+            # Extract base64 from standard response
+            base64_string = response.data[0].b64_json
+        
+        # Convert base64 to bytes (same format as original FluxAdapter)
+        image_bytes = base64.b64decode(base64_string)
+        
+        logger.info(f"[Image Tool] Image generation successful! Size: {len(image_bytes)} bytes")
+        
+        return image_bytes
+        
+    except Exception as e:
+        logger.error(f"[Image Tool] Image generation failed: {e}")
+        raise
 
 
 class CompletionService:

@@ -23,3 +23,13 @@
 
 # claude
 .claude/*.local.json
+
+.serena
+
+.claude
+/eneo
+/specs
+litellm_docs*
+openapi.json
+CLAUDE.md
+.mcp.json

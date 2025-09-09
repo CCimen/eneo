@@ -84,5 +84,6 @@ async def init_models():
         )
         logger.info("Embedding Models initialization completed.")
 
+
     except Exception as e:
         logger.exception(f"Creating models crashed with next error: {str(e)}")

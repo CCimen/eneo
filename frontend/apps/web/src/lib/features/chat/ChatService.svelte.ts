@@ -140,8 +140,20 @@ export class ChatService {
       attachments?: UploadedFile[],
       tools?: ConversationTools,
       useWebSearch?: boolean,
-      abortController?: AbortController
+      abortController?: AbortController,
+      imageParams?: {
+        imageGeneration: boolean;
+      }
     ) => {
+      // Debug logging for image parameters
+      console.log('[ChatService] askQuestion called with:', {
+        question: question.substring(0, 50) + '...',
+        hasAttachments: !!attachments?.length,
+        hasTools: !!tools,
+        useWebSearch,
+        imageParams
+      });
+
       this.currentConversation.messages?.push(emptyMessage({ question }));
 
       const ensureCurrentSession = (event: { session_id: string }) => {
@@ -156,7 +168,8 @@ export class ChatService {
         const ref =
           this.currentConversation.messages[this.currentConversation.messages?.length - 1];
 
-        await this.#intric.conversations.ask({
+        // Build request with optional image parameters
+        const requestData: any = {
           question,
           chatPartner: this.#chatPartner,
           conversation: { id: this.currentConversation.id },
@@ -164,6 +177,21 @@ export class ChatService {
           tools,
           abortController,
           useWebSearch,
+        };
+
+        // Add simple image generation flag if provided
+        if (imageParams?.imageGeneration) {
+          console.log('[ChatService] Image generation mode enabled');
+          requestData.image_generation = true;
+        }
+
+        console.log('[ChatService] Calling intric.conversations.ask with:', {
+          ...requestData,
+          files: requestData.files?.length + ' files'
+        });
+
+        await this.#intric.conversations.ask({
+          ...requestData,
           callbacks: {
             onFirstChunk: (chunk) => {
               Object.assign(ref, chunk);

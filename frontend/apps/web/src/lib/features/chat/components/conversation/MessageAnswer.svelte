@@ -14,6 +14,7 @@
 
   const { current } = getMessageContext();
   const message = $derived(current());
+  
 
   const showAnswerLabel = $derived.by(() => {
     let hasInfo = message.tools && message.tools.assistants.length > 0;
@@ -40,6 +41,7 @@
       </div>
     {/each}
   {/if}
+  
   <Markdown
     source={message.answer}
     customRenderers={{
@@ -50,5 +52,8 @@
 
 {#each message.generated_files as file (file.id)}
   {@const url = attachmentUrls.getUrl(file) ?? null}
-  <AsyncImage {url}></AsyncImage>
+  <div class="debug-generated-file">
+    <p class="text-sm text-gray-500">File: {file.name}, URL: {url ? 'present' : 'null'}</p>
+    <AsyncImage {url}></AsyncImage>
+  </div>
 {/each}

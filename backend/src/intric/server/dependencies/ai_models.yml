@@ -357,3 +357,18 @@ embedding_models:
     litellm_model_name: 'azure/text-embedding-3-large'
     description: Microsoft Azure's hosted version of OpenAI's text-embedding-3-large model, offering high-dimensional embeddings via Azure.
     org: Microsoft
+
+image_generation_models:
+
+  - name: 'gpt-image-1-azure'
+    nickname: 'GPT Image 1 (Azure)'
+    family: 'azure'
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'swe'
+    deployment_name: 'gpt-image-1'
+    litellm_model_name: 'azure/gpt-image-1'
+    description: Microsoft Azure deployment of image generation model for Swedish hosting (gpt-image-1 deployment).
+    org: Microsoft
+    open_source: false
+

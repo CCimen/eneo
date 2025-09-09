@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from intric.assistants.api.assistant_protocol import to_conversation_response
 from intric.conversations.conversation_models import ConversationRequest
@@ -11,6 +11,9 @@ from intric.main.container.container import Container
 from intric.main.models import CursorPaginatedResponse
 from intric.server.dependencies.container import get_container
 from intric.server.protocol import responses
+from intric.main.logging import get_logger
+
+logger = get_logger(__name__)
 from intric.sessions.session import (
     SessionFeedback,
     SessionMetadataPublic,
@@ -71,6 +74,10 @@ async def chat(
     if request.tools is not None and request.tools.assistants:
         tool_assistant_id = request.tools.assistants[0].id
 
+    # Log image generation mode for debugging (simple logging only)
+    if request.image_generation:
+        logger.info(f"[Chat Router] Image generation mode enabled - LLM will use generate_image tool")
+    
     # Use the dedicated ConversationService to handle routing logic
     conversation_service = container.conversation_service()
     response = await conversation_service.ask_conversation(
@@ -83,6 +90,7 @@ async def chat(
         tool_assistant_id=tool_assistant_id,
         version=version,
         use_web_search=request.use_web_search,
+        image_generation=request.image_generation,  # Simple flag for logging
     )
 
     return await to_conversation_response(

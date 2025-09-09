@@ -53,6 +53,7 @@ class ConversationService:
         tool_assistant_id: Optional["UUID"] = None,
         version: int = 1,
         use_web_search: bool = False,
+        image_generation: bool = False,  # Simple flag for logging only
     ) -> "AskChatResponse":
         """
         Routes a conversation request to the appropriate service based on the parameters.

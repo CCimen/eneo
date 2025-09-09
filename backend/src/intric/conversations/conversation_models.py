@@ -33,6 +33,9 @@ class ConversationRequest(BaseModel):
     stream: bool = False
     tools: Optional[UseTools] = None
     use_web_search: bool = False
+    
+    # Image generation toggle (simple flag for frontend, tool system handles the rest)
+    image_generation: bool = False
 
     @model_validator(mode="after")
     def validate_ids(self) -> "ConversationRequest":
