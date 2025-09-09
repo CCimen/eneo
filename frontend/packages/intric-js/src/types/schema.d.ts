@@ -1073,6 +1073,14 @@ export interface paths {
     /** Delete Origin */
     delete: operations["delete_origin_api_v1_sysadmin_allowed_origins__id___delete"];
   };
+  "/api/v1/sysadmin/image-generation-models/": {
+    /** Get Image Generation Models */
+    get: operations["get_image_generation_models_api_v1_sysadmin_image_generation_models__get"];
+  };
+  "/api/v1/sysadmin/tenants/{id}/image-generation-models/{image_generation_model_id}/": {
+    /** Enable Image Generation Model */
+    post: operations["enable_image_generation_model_api_v1_sysadmin_tenants__id__image_generation_models__image_generation_model_id___post"];
+  };
   "/api/v1/modules/": {
     /** Get Modules */
     get: operations["get_modules_api_v1_modules__get"];
@@ -2130,6 +2138,11 @@ export interface components {
        * @default false
        */
       use_web_search?: boolean;
+      /**
+       * Image Generation
+       * @default false
+       */
+      image_generation?: boolean;
     };
     /** Counts */
     Counts: {
@@ -2869,6 +2882,104 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    /** ImageGenerationModelPublic */
+    ImageGenerationModelPublic: {
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Nickname */
+      nickname: string;
+      family: components["schemas"]["ModelFamily"];
+      /** Is Deprecated */
+      is_deprecated: boolean;
+      stability: components["schemas"]["ModelStability"];
+      hosting: components["schemas"]["ModelHostingLocation"];
+      /** Description */
+      description?: string | null;
+      org?: components["schemas"]["ModelOrg"] | null;
+      /** Litellm Model Name */
+      litellm_model_name: string;
+      /**
+       * Is Org Enabled
+       * @default false
+       */
+      is_org_enabled?: boolean;
+      /**
+       * Is Org Default
+       * @default false
+       */
+      is_org_default?: boolean;
+      /**
+       * Can Access
+       * @default false
+       */
+      can_access?: boolean;
+      security_classification?: components["schemas"]["SecurityClassificationPublic"] | null;
+    };
+    /** ImageGenerationModelSecurityStatus */
+    ImageGenerationModelSecurityStatus: {
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Nickname */
+      nickname: string;
+      family: components["schemas"]["ModelFamily"];
+      /** Is Deprecated */
+      is_deprecated: boolean;
+      stability: components["schemas"]["ModelStability"];
+      hosting: components["schemas"]["ModelHostingLocation"];
+      /** Description */
+      description?: string | null;
+      org?: components["schemas"]["ModelOrg"] | null;
+      /** Litellm Model Name */
+      litellm_model_name: string;
+      /**
+       * Is Org Enabled
+       * @default false
+       */
+      is_org_enabled?: boolean;
+      /**
+       * Is Org Default
+       * @default false
+       */
+      is_org_default?: boolean;
+      /**
+       * Can Access
+       * @default false
+       */
+      can_access?: boolean;
+      security_classification?: components["schemas"]["SecurityClassificationPublic"] | null;
+      /** Meets Security Classification */
+      meets_security_classification?: boolean | null;
+    };
+    /** ImageGenerationModelUpdateFlags */
+    ImageGenerationModelUpdateFlags: {
+      /** Is Org Enabled */
+      is_org_enabled?: boolean | null;
+      /** Is Org Default */
+      is_org_default?: boolean | null;
+      /**
+       * Security Classification
+       * @default NOT_PROVIDED
+       */
+      security_classification?: components["schemas"]["ModelId"] | null;
+    };
     /** InfoBlobAddPublic */
     InfoBlobAddPublic: {
       /** Text */
@@ -3227,7 +3338,7 @@ export interface components {
      * ModelFamily
      * @enum {string}
      */
-    ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5";
+    ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5" | "google";
     /**
      * ModelHostingLocation
      * @enum {string}
@@ -3331,6 +3442,8 @@ export interface components {
       embedding_models: components["schemas"]["EmbeddingModelSecurityStatus"][];
       /** Transcription Models */
       transcription_models: components["schemas"]["TranscriptionModelSecurityStatus"][];
+      /** Image Generation Models */
+      image_generation_models: components["schemas"]["ImageGenerationModelSecurityStatus"][];
     };
     /** ModuleBase */
     ModuleBase: {
@@ -3648,6 +3761,19 @@ export interface components {
        * @description List of items returned in the response
        */
       items: components["schemas"]["GroupPublicWithMetadata"][];
+      /**
+       * Count
+       * @description Number of items returned in the response
+       */
+      count: number;
+    };
+    /** PaginatedResponse[ImageGenerationModelPublic] */
+    PaginatedResponse_ImageGenerationModelPublic_: {
+      /**
+       * Items
+       * @description List of items returned in the response
+       */
+      items: components["schemas"]["ImageGenerationModelPublic"][];
       /**
        * Count
        * @description Number of items returned in the response
@@ -7529,7 +7655,15 @@ export interface operations {
                * ModelFamily
                * @enum {string}
                */
-              ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5";
+              ModelFamily:
+                | "openai"
+                | "mistral"
+                | "vllm"
+                | "claude"
+                | "azure"
+                | "ovhcloud"
+                | "e5"
+                | "google";
               /**
                * ModelHostingLocation
                * @enum {string}
@@ -7827,7 +7961,15 @@ export interface operations {
                * ModelFamily
                * @enum {string}
                */
-              ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5";
+              ModelFamily:
+                | "openai"
+                | "mistral"
+                | "vllm"
+                | "claude"
+                | "azure"
+                | "ovhcloud"
+                | "e5"
+                | "google";
               /**
                * ModelHostingLocation
                * @enum {string}
@@ -12478,6 +12620,57 @@ export interface operations {
       /** @description Successful Response */
       204: {
         content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Image Generation Models */
+  get_image_generation_models_api_v1_sysadmin_image_generation_models__get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PaginatedResponse_ImageGenerationModelPublic_"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+    };
+  };
+  /** Enable Image Generation Model */
+  enable_image_generation_model_api_v1_sysadmin_tenants__id__image_generation_models__image_generation_model_id___post: {
+    parameters: {
+      path: {
+        id: string;
+        image_generation_model_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ImageGenerationModelUpdateFlags"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImageGenerationModelPublic"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
       };
       /** @description Validation Error */
       422: {

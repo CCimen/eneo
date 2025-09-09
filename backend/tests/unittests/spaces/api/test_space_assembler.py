@@ -51,6 +51,7 @@ def space_assembler():
         MagicMock(),
         assistant_assembler=assistant_assembler,
         completion_model_assembler=MagicMock(),
+        image_generation_model_assembler=MagicMock(),
         actor_manager=MagicMock(),
     )
 

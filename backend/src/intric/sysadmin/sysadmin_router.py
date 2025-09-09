@@ -271,3 +271,6 @@ async def delete_origin(
 ):
     allowed_origin_repo = container.allowed_origin_repo()
     await allowed_origin_repo.delete(id)
+
+
+# Image Generation Models endpoints

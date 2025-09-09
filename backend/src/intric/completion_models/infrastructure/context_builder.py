@@ -295,11 +295,12 @@ class _Prompt:
 class ContextBuilder:
     @staticmethod
     def _functions():
+        # Re-enabled: generate_image tool using LiteLLM Azure implementation
         return [
             FunctionDefinition(
                 name="generate_image",
                 description=(
-                    "Generate an image based on a text prompt. Will always be JPEG."
+                    "Generate an image based on a text prompt. Supports multiple providers including Azure, Gemini, and OpenAI."
                     "\n\nWhen discussing this ability with users:"
                     "\n- DO NOT mention 'tools' or the technical name 'generate_image'."
                     "\n- DO say you can 'create' or 'generate' images based on descriptions."

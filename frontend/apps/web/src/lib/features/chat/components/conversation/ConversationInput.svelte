@@ -2,6 +2,7 @@
   import AttachmentUploadIconButton from "$lib/features/attachments/components/AttachmentUploadIconButton.svelte";
   import { IconEnter } from "@intric/icons/enter";
   import { IconStopCircle } from "@intric/icons/stop-circle";
+  import { IconFileImage } from "@intric/icons/file-image";
   import { Button, Input, Tooltip } from "@intric/ui";
   import { getAttachmentManager } from "$lib/features/attachments/AttachmentManager";
   import MentionInput from "../mentions/MentionInput.svelte";
@@ -58,7 +59,24 @@
             })
           }
         : undefined;
-    chat.askQuestion($question, files, tools, webSearchEnabled, abortController);
+        
+    // Pass simple image generation flag
+    console.log('[Chat Input] Sending message with image mode:', isImageMode);
+    console.log('[Chat Input] Question:', $question);
+    
+    chat.askQuestion(
+      $question, 
+      files, 
+      tools, 
+      webSearchEnabled, 
+      abortController,
+      {
+        imageGeneration: isImageMode  // Simple toggle - tool system handles the rest
+      }
+    );
+    
+    console.log('[Chat Input] Message sent, resetting input');
+    
     scrollToBottom();
     resetMentionInput();
     clearUploads();
@@ -74,6 +92,7 @@
   );
 
   let useWebSearch = $state(false);
+  let isImageMode = $state(false);
 
   const shouldShowMentionButton = $derived.by(() => {
     const hasTools = chat.partner.tools.assistants.length > 0;
@@ -101,6 +120,22 @@
       {#if shouldShowMentionButton}
         <MentionButton></MentionButton>
       {/if}
+      <Tooltip text="Toggle image generation mode" placement="top" let:trigger asFragment>
+        <Button
+          unstyled
+          aria-label="Toggle image generation mode"
+          is={trigger}
+          on:click={() => {
+            console.log('[Image Toggle] Toggling image mode from', isImageMode, 'to', !isImageMode);
+            isImageMode = !isImageMode;
+            console.log('[Image Toggle] Image mode is now:', isImageMode);
+            // TODO: Add keyboard shortcut (Ctrl+I) support
+          }}
+          class="hover:bg-accent-dimmer hover:text-accent-stronger border-default hover:border-accent-default {isImageMode ? 'bg-accent-dimmer text-accent-stronger border-accent-default' : ''} flex items-center justify-center rounded-full border p-1.5 transition-colors"
+        >
+          <IconFileImage />
+        </Button>
+      </Tooltip>
       {#if chat.partner.type === "default-assistant" && featureFlags.showWebSearch}
         <div
           class="hover:bg-accent-dimmer hover:text-accent-stronger border-default hover:border-accent-default flex items-center justify-center rounded-full border p-1.5"
