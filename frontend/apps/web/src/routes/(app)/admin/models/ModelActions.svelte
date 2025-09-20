@@ -5,7 +5,7 @@
 -->
 
 <script lang="ts">
-  import type { CompletionModel, EmbeddingModel, TranscriptionModel } from "@intric/intric-js";
+  import type { CompletionModel, EmbeddingModel, TranscriptionModel, ImageGenerationModel } from "@intric/intric-js";
   import { IconEllipsis } from "@intric/icons/ellipsis";
   import { Button, Dropdown } from "@intric/ui";
   import { getIntric } from "$lib/core/Intric";
@@ -20,8 +20,8 @@
   import ModelClassificationDialog from "$lib/features/security-classifications/components/ModelClassificationDialog.svelte";
   import { IconLockClosed } from "@intric/icons/lock-closed";
 
-  export let model: CompletionModel | EmbeddingModel | TranscriptionModel;
-  export let type: "completionModel" | "embeddingModel" | "transcriptionModel";
+  export let model: CompletionModel | EmbeddingModel | TranscriptionModel | ImageGenerationModel;
+  export let type: "completionModel" | "embeddingModel" | "transcriptionModel" | "imageGenerationModel";
 
   const intric = getIntric();
 

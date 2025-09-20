@@ -32,6 +32,40 @@ class CompletionModels(BasePublic):
     litellm_model_name: Mapped[Optional[str]] = mapped_column()
 
 
+class ImageGenerationModels(BasePublic):
+    name: Mapped[str] = mapped_column(unique=True)
+    nickname: Mapped[str] = mapped_column()
+    open_source: Mapped[bool] = mapped_column()
+    is_deprecated: Mapped[bool] = mapped_column(server_default="False")
+
+    family: Mapped[str] = mapped_column()
+    stability: Mapped[str] = mapped_column()
+    hosting: Mapped[str] = mapped_column()
+    description: Mapped[Optional[str]] = mapped_column()
+    org: Mapped[Optional[str]] = mapped_column()
+    litellm_model_name: Mapped[Optional[str]] = mapped_column()
+    deployment_name: Mapped[Optional[str]] = mapped_column()
+
+
+class ImageGenerationModelSettings(BaseCrossReference):
+    tenant_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Tenants.id, ondelete="CASCADE"), primary_key=True
+    )
+    image_generation_model_id: Mapped[UUID] = mapped_column(
+        ForeignKey(ImageGenerationModels.id, ondelete="CASCADE"), primary_key=True
+    )
+    is_org_enabled: Mapped[bool] = mapped_column(server_default="False")
+    is_org_default: Mapped[bool] = mapped_column(server_default="False")
+
+    # Security classification relationship
+    security_classification_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey(SecurityClassificationsTable.id, ondelete="SET NULL"), nullable=True
+    )
+    security_classification: Mapped[Optional["SecurityClassificationsTable"]] = (
+        relationship(back_populates="image_generation_model_settings")
+    )
+
+
 class CompletionModelSettings(BaseCrossReference):
     tenant_id: Mapped[UUID] = mapped_column(
         ForeignKey(Tenants.id, ondelete="CASCADE"), primary_key=True

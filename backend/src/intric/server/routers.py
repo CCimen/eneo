@@ -18,6 +18,9 @@ from intric.dashboard.api.dashboard_router import router as dashboard_router
 from intric.embedding_models.presentation.embedding_model_router import (
     router as embedding_models_router,
 )
+from intric.image_generation_models.presentation.image_generation_models_router import (
+    router as image_generation_models_router,
+)
 from intric.files.file_router import router as files_router
 from intric.group_chat.presentation.group_chat_router import router as group_chat_router
 from intric.groups_legacy.api.group_router import router as groups_router
@@ -89,6 +92,11 @@ router.include_router(
     transcription_models_router,
     prefix="/transcription-models",
     tags=["transcription-models"],
+)
+router.include_router(
+    image_generation_models_router,
+    prefix="/image-generation-models",
+    tags=["image-generation-models"],
 )
 router.include_router(files_router, prefix="/files", tags=["files"])
 router.include_router(limit_router, prefix="/limits", tags=["limits"])

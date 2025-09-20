@@ -294,25 +294,143 @@ class _Prompt:
 
 class ContextBuilder:
     @staticmethod
+    def _get_image_generation_schema():
+        """Generate dynamic schema based on available image generation models"""
+        from intric.main.logging import get_logger
+        logger = get_logger(__name__)
+
+        logger.debug("[Context Builder] Building dynamic image generation schema")
+
+        try:
+            import os
+            import pathlib
+            import yaml
+
+            # Load model configurations
+            config_path = os.path.join(
+                pathlib.Path(__file__).parent.parent.parent,
+                "server", "dependencies", "ai_models.yml"
+            )
+            logger.debug(f"[Context Builder] Loading image models from: {config_path}")
+
+            with open(config_path, "r") as file:
+                data = yaml.safe_load(file)
+
+            image_models = data.get("image_generation_models", [])
+            logger.debug(f"[Context Builder] Found {len(image_models)} image models in config")
+
+            # Collect all unique capabilities across models
+            all_sizes = set()
+            all_qualities = set()
+            all_models = []
+
+            for model in image_models:
+                if not model.get("is_deprecated", False):
+                    model_name = model.get("litellm_model_name")
+                    if model_name:
+                        all_models.append(model_name)
+                        capabilities = model.get("capabilities", {})
+                        all_sizes.update(capabilities.get("sizes", []))
+                        all_qualities.update(capabilities.get("qualities", []))
+                        logger.debug(f"[Context Builder] Added {model_name} capabilities: "
+                                   f"sizes={capabilities.get('sizes')}, qualities={capabilities.get('qualities')}")
+
+            logger.info(f"[Context Builder] Schema includes {len(all_models)} models, "
+                       f"{len(all_sizes)} sizes, {len(all_qualities)} qualities")
+
+            # Build schema with dynamic enums
+            schema = {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "Text description of the image to generate"
+                    },
+                    "model": {
+                        "type": "string",
+                        "enum": sorted(all_models),
+                        "description": "Image generation model to use. If not specified, uses the default model."
+                    },
+                    "size": {
+                        "type": "string",
+                        "enum": sorted(all_sizes),
+                        "description": "Image dimensions (e.g., '1024x1024'). If not specified, uses model default."
+                    },
+                    "quality": {
+                        "type": "string",
+                        "enum": sorted(all_qualities),
+                        "description": "Image quality level. If not specified, uses model default."
+                    }
+                },
+                "required": ["prompt"],
+                "additionalProperties": False
+            }
+
+            logger.debug(f"[Context Builder] Generated schema: {schema}")
+            return schema
+
+        except FileNotFoundError as e:
+            logger.error(f"[Context Builder] Config file not found: {e}")
+            return ContextBuilder._get_fallback_schema()
+        except yaml.YAMLError as e:
+            logger.error(f"[Context Builder] YAML parsing error: {e}")
+            return ContextBuilder._get_fallback_schema()
+        except Exception as e:
+            logger.error(f"[Context Builder] Unexpected error building schema: {e}")
+            logger.debug("[Context Builder] Full error details:", exc_info=True)
+            return ContextBuilder._get_fallback_schema()
+
+    @staticmethod
+    def _get_fallback_schema():
+        """Get a basic fallback schema when dynamic schema generation fails"""
+        from intric.main.logging import get_logger
+        logger = get_logger(__name__)
+
+        logger.warning("[Context Builder] Using fallback schema for image generation")
+        return {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "Text description of the image to generate"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Image generation model to use (optional)"
+                },
+                "size": {
+                    "type": "string",
+                    "description": "Image dimensions like '1024x1024' (optional)"
+                },
+                "quality": {
+                    "type": "string",
+                    "description": "Image quality like 'standard' or 'hd' (optional)"
+                }
+            },
+            "required": ["prompt"],
+            "additionalProperties": False,
+        }
+
+    @staticmethod
     def _functions():
-        # Re-enabled: generate_image tool using LiteLLM Azure implementation
+        # Generate dynamic schema based on available models
         return [
             FunctionDefinition(
                 name="generate_image",
                 description=(
-                    "Generate an image based on a text prompt. Supports multiple providers including Azure, Gemini, and OpenAI."
+                    "Generate an image based on a text prompt. Supports multiple providers including Azure and Gemini."
+                    "\n\nParameters:"
+                    "\n- prompt (required): Text description of the image"
+                    "\n- model (optional): Specific model to use for generation"
+                    "\n- size (optional): Image dimensions (e.g., '1024x1024', '512x512')"
+                    "\n- quality (optional): Image quality level (e.g., 'standard', 'hd')"
                     "\n\nWhen discussing this ability with users:"
                     "\n- DO NOT mention 'tools' or the technical name 'generate_image'."
                     "\n- DO say you can 'create' or 'generate' images based on descriptions."
                     "\n- Use natural, conversational language about your image capabilities."
                     "\n- If asked to create Vector-based images, do it in code instead."
                 ),
-                schema={
-                    "type": "object",
-                    "properties": {"prompt": {"type": "string"}},
-                    "required": ["prompt"],
-                    "additionalProperties": False,
-                },
+                schema=ContextBuilder._get_image_generation_schema(),
             )
         ]
 

@@ -3,8 +3,11 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from uuid import UUID
 
 from intric.ai_models.completion_models.completion_model import (
+    Completion,
     CompletionModelPublic,
+    CompletionModelResponse,
     ModelKwargs,
+    ResponseType,
 )
 from intric.assistants.api.assistant_models import AssistantType
 from intric.base.base_entity import Entity
@@ -18,6 +21,7 @@ from intric.main.exceptions import (
     NoModelSelectedException,
     UnauthorizedException,
 )
+from intric.main.logging import get_logger
 from intric.main.models import NOT_PROVIDED, NotProvided
 from intric.prompts.prompt import Prompt
 from intric.sessions.session import SessionInDB
@@ -27,6 +31,7 @@ if TYPE_CHECKING:
     from intric.assistants.references import ReferencesService
     from intric.collections.domain.collection import Collection
     from intric.completion_models.infrastructure.web_search import WebSearchResult
+    from intric.image_generation_models.application.image_generation_service import ImageGenerationService
     from intric.integration.domain.entities.integration_knowledge import (
         IntegrationKnowledge,
     )
@@ -36,6 +41,7 @@ if TYPE_CHECKING:
 
 UNAUTHORIZED_EXCEPTION_MESSAGE = "Unauthorized. User has no permissions to access."
 
+logger = get_logger(__name__)
 
 _KnowledgeItemList = List[Union["Collection", "Website", "IntegrationKnowledge"]]
 
@@ -305,6 +311,8 @@ class Assistant(Entity):
         stream: bool = False,
         version: int = 1,
         web_search_results: list["WebSearchResult"] = [],
+        image_generation: bool = False,
+        image_generation_service: Optional["ImageGenerationService"] = None,
     ):
         if any([file.file_type == FileType.IMAGE for file in files]):
             if not self.completion_model.vision:
@@ -325,6 +333,50 @@ class Assistant(Entity):
             version=version,
         )
 
+        logger.info(f"[Assistant] Image generation requested: {image_generation}")
+
+        # Handle image generation separately
+        if image_generation:
+            if not image_generation_service:
+                raise BadRequestException("Image generation service not available")
+
+            logger.info(f"[Assistant] Routing to image generation service for space: {self.space_id}")
+
+            try:
+                # Generate image directly using image generation service
+                image_bytes = await image_generation_service.generate_image(
+                    prompt=question
+                )
+
+                # Create a completion object with image data
+                completion = Completion(
+                    text=None,
+                    image_data=image_bytes,
+                    response_type=ResponseType.FILES
+                )
+
+                # Create async generator for streaming compatibility
+                async def image_completion_generator():
+                    yield completion
+
+                # Create a compatible response object
+                response = CompletionModelResponse(
+                    completion=image_completion_generator(),
+                    model=self.completion_model,
+                    extended_logging=None,
+                    total_token_count=0
+                )
+
+                logger.info(f"[Assistant] Image generation completed successfully")
+                return response, datastore_result
+
+            except Exception as e:
+                logger.error(f"[Assistant] Image generation failed: {e}")
+                raise BadRequestException(f"Image generation failed: {e}")
+
+        # Handle normal text completion
+        logger.info(f"[Assistant] Using completion model: {self.completion_model.name}")
+
         response = await completion_service.get_response(
             model=self.completion_model,
             text_input=question,
@@ -337,7 +389,7 @@ class Assistant(Entity):
             extended_logging=self.logging_enabled,
             model_kwargs=self.completion_model_kwargs,
             version=version,
-            use_image_generation=self.is_default,
+            use_image_generation=False,  # Don't use function calling for image generation
             web_search_results=web_search_results,
         )
 

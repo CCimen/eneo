@@ -48,7 +48,19 @@ from intric.database.database import AsyncSession
 from intric.embedding_models.application.embedding_model_crud_service import (
     EmbeddingModelCRUDService,
 )
+from intric.image_generation_models.application.image_generation_model_crud_service import (
+    ImageGenerationModelCRUDService,
+)
+from intric.image_generation_models.application.image_generation_service import (
+    ImageGenerationService,
+)
 from intric.embedding_models.domain.embedding_model_repo import EmbeddingModelRepository
+from intric.image_generation_models.domain.image_generation_model_repo import (
+    ImageGenerationModelRepository,
+)
+from intric.image_generation_models.domain.image_generation_model_domain_repo import (
+    ImageGenerationModelDomainRepository,
+)
 from intric.embedding_models.infrastructure.create_embeddings_service import (
     CreateEmbeddingsService,
 )
@@ -340,6 +352,8 @@ class Container(containers.DeclarativeContainer):
         CompletionModelRepository, session=session, user=user
     )
     embedding_model_repo2 = providers.Factory(EmbeddingModelRepository, session=session, user=user)
+    image_generation_model_repo = providers.Factory(ImageGenerationModelRepository, session=session)
+    image_generation_model_repo2 = providers.Factory(ImageGenerationModelDomainRepository, session=session, user=user)
     transcription_model_repo = providers.Factory(
         TranscriptionModelRepository, session=session, user=user
     )
@@ -473,6 +487,16 @@ class Container(containers.DeclarativeContainer):
         user=user,
         embedding_model_repo=embedding_model_repo2,
         security_classification_repo=security_classification_repo,
+    )
+    image_generation_model_crud_service = providers.Factory(
+        ImageGenerationModelCRUDService,
+        user=user,
+        image_generation_model_repo=image_generation_model_repo2,
+        security_classification_repo=security_classification_repo,
+    )
+    image_generation_service = providers.Factory(
+        ImageGenerationService,
+        image_generation_repo=image_generation_model_repo2,
     )
     completion_model_service = providers.Factory(
         CompletionModelService,
@@ -650,6 +674,7 @@ class Container(containers.DeclarativeContainer):
         integration_knowledge_repo=integration_knowledge_repo,
         completion_service=completion_service,
         references_service=references_service,
+        image_generation_service=image_generation_service,
     )
     group_chat_service = providers.Factory(
         GroupChatService,

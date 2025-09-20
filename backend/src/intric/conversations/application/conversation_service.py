@@ -104,6 +104,7 @@ class ConversationService:
                     tool_assistant_id=tool_assistant_id,
                     version=version,
                     use_web_search=use_web_search,
+                    image_generation=image_generation,
                 )
 
         # case 2: starting a new conversation
@@ -130,6 +131,7 @@ class ConversationService:
                     tool_assistant_id=tool_assistant_id,
                     version=version,
                     use_web_search=use_web_search,
+                    image_generation=image_generation,
                 )
             else:
                 # should never happen due to model validation, but just to be safe

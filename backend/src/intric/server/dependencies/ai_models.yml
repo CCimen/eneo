@@ -11,6 +11,7 @@ completion_models:
     org: OpenAI
     vision: true
     reasoning: false
+    image_generation: false
 
   - name: 'gpt-3.5-turbo'
     nickname: 'ChatGPT'
@@ -23,6 +24,7 @@ completion_models:
     org: OpenAI
     vision: false
     reasoning: false
+    image_generation: false
 
   - name: 'o3-mini'
     nickname: 'o3-mini'
@@ -35,6 +37,7 @@ completion_models:
     org: OpenAI
     vision: false
     reasoning: true
+    image_generation: false
 
   - name: 'mistralai/Mixtral-8x7B-Instruct-v0.1'
     nickname: 'Mixtral'
@@ -46,6 +49,7 @@ completion_models:
     description: Mistral AI's innovative Mixture of Experts model with 8 experts, each containing 7 billion parameters, offering efficient scaling and processing.
     vision: false
     reasoning: false
+    image_generation: false
 
   - name: 'Qwen/Qwen1.5-14B-Chat'
     nickname: 'Qwen'
@@ -101,6 +105,7 @@ completion_models:
     org: OpenAI
     vision: true
     reasoning: false
+    image_generation: false
 
   - name: 'gpt-4o-mini'
     nickname: 'GPT-4o mini'
@@ -113,6 +118,7 @@ completion_models:
     org: OpenAI
     vision: true
     reasoning: false
+    image_generation: false
 
   - name: 'claude-3-opus-latest'
     nickname: 'Claude 3 Opus'
@@ -311,6 +317,7 @@ completion_models:
     hf_link: 'https://huggingface.co/google/gemma-3-27b-it'
     org: Google
     vision: false
+    image_generation: false
 
 
 embedding_models:
@@ -370,5 +377,16 @@ image_generation_models:
     litellm_model_name: 'azure/gpt-image-1'
     description: Microsoft Azure deployment of image generation model for Swedish hosting (gpt-image-1 deployment).
     org: Microsoft
+    open_source: false
+
+  - name: 'imagen-4.0-generate-001'
+    nickname: 'Imagen 4.0'
+    family: 'gemini'
+    is_deprecated: false
+    stability: 'stable'
+    hosting: 'usa'
+    litellm_model_name: 'gemini/imagen-4.0-generate-001'
+    description: Google's Imagen 4.0 model for high-quality image generation.
+    org: Google
     open_source: false
 

@@ -60,21 +60,21 @@
           }
         : undefined;
         
-    // Pass simple image generation flag
+    // Pass simple image generation flag (like web search)
     console.log('[Chat Input] Sending message with image mode:', isImageMode);
     console.log('[Chat Input] Question:', $question);
-    
+
     chat.askQuestion(
-      $question, 
-      files, 
-      tools, 
-      webSearchEnabled, 
+      $question,
+      files,
+      tools,
+      webSearchEnabled,
       abortController,
       {
-        imageGeneration: isImageMode  // Simple toggle - tool system handles the rest
+        imageGeneration: isImageMode
       }
     );
-    
+
     console.log('[Chat Input] Message sent, resetting input');
     
     scrollToBottom();

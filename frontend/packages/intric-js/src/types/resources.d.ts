@@ -32,6 +32,34 @@ export type Widget = components["schemas"]["WidgetPublic"];
 export type CompletionModel = components["schemas"]["CompletionModelPublic"];
 export type EmbeddingModel = components["schemas"]["EmbeddingModelPublic"];
 export type TranscriptionModel = components["schemas"]["TranscriptionModelPublic"];
+// TODO: Add ImageGenerationModelPublic to backend schema when API is implemented
+export type ImageGenerationModel = {
+  id: string;
+  name: string;
+  nickname?: string;
+  family: string;
+  org?: string;
+  is_deprecated: boolean;
+  stability: string;
+  hosting: string;
+  description?: string;
+  open_source?: boolean;
+  litellm_model_name?: string;
+  capabilities?: {
+    sizes?: string[];
+    qualities?: string[];
+    formats?: string[];
+    max_images?: number;
+  };
+  default_params?: {
+    size?: string;
+    quality?: string;
+    format?: string;
+    n?: number;
+  };
+  is_org_enabled?: boolean;
+  meets_security_classification?: boolean;
+};
 export type SecurityClassification = components["schemas"]["SecurityClassificationPublic"];
 export type Job = components["schemas"]["JobPublic"];
 export type JobStatus = components["schemas"]["Status"];

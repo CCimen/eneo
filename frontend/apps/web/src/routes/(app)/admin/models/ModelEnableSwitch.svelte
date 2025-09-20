@@ -8,13 +8,13 @@
   import { invalidate } from "$app/navigation";
   import { getAppContext } from "$lib/core/AppContext";
   import { getIntric } from "$lib/core/Intric";
-  import type { CompletionModel, EmbeddingModel, TranscriptionModel } from "@intric/intric-js";
+  import type { CompletionModel, EmbeddingModel, TranscriptionModel, ImageGenerationModel } from "@intric/intric-js";
   import { Input, Tooltip } from "@intric/ui";
 
-  export let model: (CompletionModel | EmbeddingModel | TranscriptionModel) & {
+  export let model: (CompletionModel | EmbeddingModel | TranscriptionModel | ImageGenerationModel) & {
     is_locked?: boolean | null | undefined;
   };
-  export let type: "completionModel" | "embeddingModel" | "transcriptionModel";
+  export let type: "completionModel" | "embeddingModel" | "transcriptionModel" | "imageGenerationModel";
 
   const intric = getIntric();
   const { environment } = getAppContext();
