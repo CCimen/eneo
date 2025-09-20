@@ -10,6 +10,7 @@
   import SelectEmbeddingModels from "./SelectEmbeddingModels.svelte";
   import EditNameAndDescription from "./EditNameAndDescription.svelte";
   import SelectCompletionModels from "./SelectCompletionModels.svelte";
+  import SelectImageGenerationModels from "./SelectImageGenerationModels.svelte";
   import { Page, Settings } from "$lib/components/layout";
   import SpaceStorageOverview from "./SpaceStorageOverview.svelte";
   import SelectTranscriptionModels from "./SelectTranscriptionModels.svelte";
@@ -25,6 +26,9 @@
   let embeddingModels = $derived(models.embeddingModels.filter((model) => model.is_org_enabled));
   let transcriptionModels = $derived(
     models.transcriptionModels.filter((model) => model.is_org_enabled)
+  );
+  let imageGenerationModels = $derived(
+    models.imageGenerationModels?.filter((model) => model.is_org_enabled) ?? []
   );
 
   const spaces = getSpacesManager();
@@ -88,6 +92,9 @@
         <SelectCompletionModels selectableModels={completionModels}></SelectCompletionModels>
 
         <SelectEmbeddingModels selectableModels={embeddingModels}></SelectEmbeddingModels>
+
+        <SelectImageGenerationModels selectableModels={imageGenerationModels}
+        ></SelectImageGenerationModels>
 
         <SelectTranscriptionModels selectableModels={transcriptionModels}
         ></SelectTranscriptionModels>

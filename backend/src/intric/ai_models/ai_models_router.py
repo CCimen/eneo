@@ -16,6 +16,9 @@ from intric.server.protocol import responses
 from intric.transcription_models.presentation.transcription_model_models import (
     TranscriptionModelSecurityStatus,
 )
+from intric.image_generation_models.presentation.image_generation_model_models import (
+    ImageGenerationModelSecurityStatus,
+)
 
 router = APIRouter()
 
@@ -24,7 +27,7 @@ router = APIRouter()
     "/",
     response_model=ModelsPresentation,
     summary="Get all AI models",
-    description="Get all completion, embedding, and transcription models. ",
+    description="Get all completion, embedding, transcription, and image generation models. ",
     responses=responses.get_responses([404, 500]),
 )
 async def get_models(
@@ -38,6 +41,7 @@ async def get_models(
     completion_model_crud_service = container.completion_model_crud_service()
     transcription_model_crud_service = container.transcription_model_crud_service()
     embedding_model_crud_service = container.embedding_model_crud_service()
+    image_generation_model_crud_service = container.image_generation_model_crud_service()
     user = container.user()
     space_service = container.space_service()
     space = None
@@ -47,6 +51,7 @@ async def get_models(
     cms = await completion_model_crud_service.get_completion_models()
     tms = await transcription_model_crud_service.get_transcription_models()
     ems = await embedding_model_crud_service.get_embedding_models()
+    ims = await image_generation_model_crud_service.get_image_generation_models()
 
     completion_models = []
     for cm in cms:
@@ -99,8 +104,27 @@ async def get_models(
                 embedding_model_public.meets_security_classification = None
         embedding_models.append(embedding_model_public)
 
+    # Image generation models (following completion/embedding model pattern)
+    image_generation_models = []
+    for im in ims:
+        image_generation_model_public = ImageGenerationModelSecurityStatus.from_domain(im)
+        if space:
+            if user.tenant.security_enabled:
+                if space.security_classification is None:
+                    image_generation_model_public.meets_security_classification = True
+                else:
+                    image_generation_model_public.meets_security_classification = (
+                        not space.security_classification.is_greater_than(
+                            im.security_classification
+                        )
+                    )
+            else:
+                image_generation_model_public.meets_security_classification = None
+        image_generation_models.append(image_generation_model_public)
+
     return ModelsPresentation(
         completion_models=completion_models,
         embedding_models=embedding_models,
         transcription_models=transcription_models,
+        image_generation_models=image_generation_models,
     )

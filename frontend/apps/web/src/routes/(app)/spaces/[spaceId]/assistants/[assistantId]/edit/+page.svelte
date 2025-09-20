@@ -322,6 +322,24 @@
           ></SelectModelSpecificSettings>
         </Settings.Row>
         {/if}
+
+        {#if ($currentSpace.image_generation_models?.length ?? 0) > 0}
+        <Settings.Row
+          title="Image generation model"
+          description="Select which model this assistant will use to generate images. Leave unselected to use the default model."
+          hasChanges={$currentChanges.diff.image_generation_model !== undefined}
+          revertFn={() => {
+            discardChanges("image_generation_model");
+          }}
+          let:aria
+        >
+          <SelectAIModelV2
+            bind:selectedModel={$update.image_generation_model}
+            availableModels={$currentSpace.image_generation_models || []}
+            {aria}
+          ></SelectAIModelV2>
+        </Settings.Row>
+        {/if}
       </Settings.Group>
 
       {#if data.assistant.permissions?.some((permission) => permission === "insight_toggle" || permission === "publish")}

@@ -642,6 +642,20 @@ export interface paths {
     /** Update Transcription Model */
     post: operations["update_transcription_model_api_v1_transcription_models__id___post"];
   };
+  "/api/v1/image-generation-models/": {
+    /**
+     * Get Image Generation Models
+     * @description Get all image generation models (following completion model router pattern)
+     */
+    get: operations["get_image_generation_models_api_v1_image_generation_models__get"];
+  };
+  "/api/v1/image-generation-models/{id}/": {
+    /**
+     * Update Image Generation Model
+     * @description Update image generation model settings (following completion model router pattern)
+     */
+    post: operations["update_image_generation_model_api_v1_image_generation_models__id___post"];
+  };
   "/api/v1/files/": {
     /** Get Files */
     get: operations["get_files_api_v1_files__get"];
@@ -998,7 +1012,7 @@ export interface paths {
   "/api/v1/ai-models/": {
     /**
      * Get all AI models
-     * @description Get all completion, embedding, and transcription models.
+     * @description Get all completion, embedding, transcription, and image generation models.
      */
     get: operations["get_models_api_v1_ai_models__get"];
   };
@@ -1072,14 +1086,6 @@ export interface paths {
   "/api/v1/sysadmin/allowed-origins/{id}/": {
     /** Delete Origin */
     delete: operations["delete_origin_api_v1_sysadmin_allowed_origins__id___delete"];
-  };
-  "/api/v1/sysadmin/image-generation-models/": {
-    /** Get Image Generation Models */
-    get: operations["get_image_generation_models_api_v1_sysadmin_image_generation_models__get"];
-  };
-  "/api/v1/sysadmin/tenants/{id}/image-generation-models/{image_generation_model_id}/": {
-    /** Enable Image Generation Model */
-    post: operations["enable_image_generation_model_api_v1_sysadmin_tenants__id__image_generation_models__image_generation_model_id___post"];
   };
   "/api/v1/modules/": {
     /** Get Modules */
@@ -2143,6 +2149,8 @@ export interface components {
        * @default false
        */
       image_generation?: boolean;
+      /** @description Advanced image generation parameters. If provided, image_generation is automatically set to True. */
+      image_generation_params?: components["schemas"]["ImageGenerationParams"] | null;
     };
     /** Counts */
     Counts: {
@@ -2882,12 +2890,11 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
-    /** ImageGenerationModelPublic */
+    /**
+     * ImageGenerationModelPublic
+     * @description Public representation of an image generation model (following completion model pattern)
+     */
     ImageGenerationModelPublic: {
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
       /**
        * Id
        * Format: uuid
@@ -2897,39 +2904,44 @@ export interface components {
       name: string;
       /** Nickname */
       nickname: string;
-      family: components["schemas"]["ModelFamily"];
+      /** Family */
+      family: string;
+      /** Hosting */
+      hosting: string;
+      /** Org */
+      org: string | null;
+      /** Stability */
+      stability: string;
+      /** Open Source */
+      open_source: boolean;
+      /** Description */
+      description: string | null;
+      /** Deployment Name */
+      deployment_name: string | null;
+      /** Litellm Model Name */
+      litellm_model_name: string | null;
       /** Is Deprecated */
       is_deprecated: boolean;
-      stability: components["schemas"]["ModelStability"];
-      hosting: components["schemas"]["ModelHostingLocation"];
-      /** Description */
-      description?: string | null;
-      org?: components["schemas"]["ModelOrg"] | null;
-      /** Litellm Model Name */
-      litellm_model_name: string;
+      /** Is Org Enabled */
+      is_org_enabled: boolean;
+      /** Is Org Default */
+      is_org_default: boolean;
       /**
-       * Is Org Enabled
+       * Is Locked
        * @default false
        */
-      is_org_enabled?: boolean;
-      /**
-       * Is Org Default
-       * @default false
-       */
-      is_org_default?: boolean;
+      is_locked?: boolean;
       /**
        * Can Access
-       * @default false
+       * @default true
        */
       can_access?: boolean;
-      security_classification?: components["schemas"]["SecurityClassificationPublic"] | null;
     };
-    /** ImageGenerationModelSecurityStatus */
+    /**
+     * ImageGenerationModelSecurityStatus
+     * @description Image generation model with security classification status (following completion model pattern)
+     */
     ImageGenerationModelSecurityStatus: {
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
       /**
        * Id
        * Format: uuid
@@ -2939,46 +2951,76 @@ export interface components {
       name: string;
       /** Nickname */
       nickname: string;
-      family: components["schemas"]["ModelFamily"];
+      /** Family */
+      family: string;
+      /** Hosting */
+      hosting: string;
+      /** Org */
+      org: string | null;
+      /** Stability */
+      stability: string;
+      /** Open Source */
+      open_source: boolean;
+      /** Description */
+      description: string | null;
+      /** Deployment Name */
+      deployment_name: string | null;
+      /** Litellm Model Name */
+      litellm_model_name: string | null;
       /** Is Deprecated */
       is_deprecated: boolean;
-      stability: components["schemas"]["ModelStability"];
-      hosting: components["schemas"]["ModelHostingLocation"];
-      /** Description */
-      description?: string | null;
-      org?: components["schemas"]["ModelOrg"] | null;
-      /** Litellm Model Name */
-      litellm_model_name: string;
+      /** Is Org Enabled */
+      is_org_enabled: boolean;
+      /** Is Org Default */
+      is_org_default: boolean;
       /**
-       * Is Org Enabled
+       * Is Locked
        * @default false
        */
-      is_org_enabled?: boolean;
-      /**
-       * Is Org Default
-       * @default false
-       */
-      is_org_default?: boolean;
+      is_locked?: boolean;
       /**
        * Can Access
-       * @default false
+       * @default true
        */
       can_access?: boolean;
-      security_classification?: components["schemas"]["SecurityClassificationPublic"] | null;
       /** Meets Security Classification */
       meets_security_classification?: boolean | null;
     };
-    /** ImageGenerationModelUpdateFlags */
-    ImageGenerationModelUpdateFlags: {
+    /**
+     * ImageGenerationModelUpdate
+     * @description Model for updating image generation model settings (following completion model pattern)
+     */
+    ImageGenerationModelUpdate: {
       /** Is Org Enabled */
-      is_org_enabled?: boolean | null;
+      is_org_enabled: boolean;
       /** Is Org Default */
       is_org_default?: boolean | null;
+    };
+    /**
+     * ImageGenerationParams
+     * @description Parameters for image generation
+     */
+    ImageGenerationParams: {
       /**
-       * Security Classification
-       * @default NOT_PROVIDED
+       * Model
+       * @description Image generation model to use
        */
-      security_classification?: components["schemas"]["ModelId"] | null;
+      model?: string | null;
+      /**
+       * Size
+       * @description Image size (e.g., '1024x1024')
+       */
+      size?: string | null;
+      /**
+       * Quality
+       * @description Image quality (e.g., 'standard', 'hd')
+       */
+      quality?: string | null;
+      /**
+       * N
+       * @description Number of images to generate
+       */
+      n?: number | null;
     };
     /** InfoBlobAddPublic */
     InfoBlobAddPublic: {
@@ -3338,7 +3380,7 @@ export interface components {
      * ModelFamily
      * @enum {string}
      */
-    ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5" | "google";
+    ModelFamily: "openai" | "mistral" | "vllm" | "claude" | "azure" | "ovhcloud" | "e5" | "gemini";
     /**
      * ModelHostingLocation
      * @enum {string}
@@ -7663,7 +7705,7 @@ export interface operations {
                 | "azure"
                 | "ovhcloud"
                 | "e5"
-                | "google";
+                | "gemini";
               /**
                * ModelHostingLocation
                * @enum {string}
@@ -7969,7 +8011,7 @@ export interface operations {
                 | "azure"
                 | "ovhcloud"
                 | "e5"
-                | "google";
+                | "gemini";
               /**
                * ModelHostingLocation
                * @enum {string}
@@ -10194,6 +10236,56 @@ export interface operations {
       };
     };
   };
+  /**
+   * Get Image Generation Models
+   * @description Get all image generation models (following completion model router pattern)
+   */
+  get_image_generation_models_api_v1_image_generation_models__get: {
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PaginatedResponse_ImageGenerationModelPublic_"];
+        };
+      };
+    };
+  };
+  /**
+   * Update Image Generation Model
+   * @description Update image generation model settings (following completion model router pattern)
+   */
+  update_image_generation_model_api_v1_image_generation_models__id___post: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ImageGenerationModelUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImageGenerationModelPublic"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Get Files */
   get_files_api_v1_files__get: {
     responses: {
@@ -12128,7 +12220,7 @@ export interface operations {
   };
   /**
    * Get all AI models
-   * @description Get all completion, embedding, and transcription models.
+   * @description Get all completion, embedding, transcription, and image generation models.
    */
   get_models_api_v1_ai_models__get: {
     parameters: {
@@ -12620,57 +12712,6 @@ export interface operations {
       /** @description Successful Response */
       204: {
         content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Image Generation Models */
-  get_image_generation_models_api_v1_sysadmin_image_generation_models__get: {
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PaginatedResponse_ImageGenerationModelPublic_"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/json": components["schemas"]["GeneralError"];
-        };
-      };
-    };
-  };
-  /** Enable Image Generation Model */
-  enable_image_generation_model_api_v1_sysadmin_tenants__id__image_generation_models__image_generation_model_id___post: {
-    parameters: {
-      path: {
-        id: string;
-        image_generation_model_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ImageGenerationModelUpdateFlags"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ImageGenerationModelPublic"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/json": components["schemas"]["GeneralError"];
-        };
       };
       /** @description Validation Error */
       422: {

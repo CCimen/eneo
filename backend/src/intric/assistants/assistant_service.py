@@ -16,6 +16,7 @@ from intric.completion_models.infrastructure.context_builder import count_tokens
 from intric.completion_models.infrastructure.web_search import WebSearch
 from intric.files.file_service import FileService
 from intric.main.exceptions import BadRequestException, UnauthorizedException
+from intric.main.logging import get_logger
 from intric.main.models import NOT_PROVIDED, NotProvided
 from intric.prompts.api.prompt_models import PromptCreate
 from intric.prompts.prompt import Prompt
@@ -50,6 +51,9 @@ if TYPE_CHECKING:
         WebSearchResult,
     )
     from intric.files.file_models import File
+    from intric.image_generation_models.application.image_generation_service import (
+        ImageGenerationService,
+    )
     from intric.info_blobs.info_blob import InfoBlobChunkInDBWithScore
     from intric.integration.domain.repositories.integration_knowledge_repo import (
         IntegrationKnowledgeRepository,
@@ -63,6 +67,8 @@ if TYPE_CHECKING:
 
 AT_TAG_PATTERN = r"<intric-at-tag: @[^>]+>"
 REFERENCE_PATTERN = r'<inref id="([0-9a-f]{8})"/>'  # noqa
+
+logger = get_logger(__name__)
 
 
 def clean_intric_tag(input_string: str):
@@ -109,6 +115,7 @@ class AssistantService:
         integration_knowledge_repo: "IntegrationKnowledgeRepository",
         completion_service: "CompletionService",
         references_service: "ReferencesService",
+        image_generation_service: "ImageGenerationService",
     ):
         self.repo = repo
         self.space_repo = space_repo
@@ -127,6 +134,7 @@ class AssistantService:
         self.integration_knowledge_repo = integration_knowledge_repo
         self.completion_service = completion_service
         self.references_service = references_service
+        self.image_generation_service = image_generation_service
 
     @property
     async def web_search(self):
@@ -540,6 +548,7 @@ class AssistantService:
         version: int = 1,
         use_web_search: bool = False,
         assistant_selector_tokens: int = 0,
+        image_generation: bool = False,
     ):
         space = await self.space_repo.get_space_by_assistant(assistant_id=assistant_id)
         active_assistant = space.get_assistant(assistant_id=assistant_id)
@@ -599,16 +608,35 @@ class AssistantService:
         else:
             web_search_results = []
 
-        response, datastore_result = await assistant_to_ask.ask(
-            question=cleaned_question,
-            completion_service=self.completion_service,
-            references_service=self.references_service,
-            session=session,
-            files=files,
-            stream=stream,
-            version=version,
-            web_search_results=web_search_results,
-        )
+        # Add logging to trace image generation routing
+        logger.info(f"[Assistant Service] Image generation mode: {image_generation}")
+
+        if image_generation:
+            logger.info(f"[Assistant Service] Routing to image generation for assistant: {assistant_to_ask.name}")
+            response, datastore_result = await assistant_to_ask.ask(
+                question=cleaned_question,
+                completion_service=self.completion_service,
+                references_service=self.references_service,
+                session=session,
+                files=files,
+                stream=stream,
+                version=version,
+                web_search_results=web_search_results,
+                image_generation=image_generation,
+                image_generation_service=self.image_generation_service,
+            )
+        else:
+            logger.debug(f"[Assistant Service] Routing to completion service for assistant: {assistant_to_ask.name}")
+            response, datastore_result = await assistant_to_ask.ask(
+                question=cleaned_question,
+                completion_service=self.completion_service,
+                references_service=self.references_service,
+                session=session,
+                files=files,
+                stream=stream,
+                version=version,
+                web_search_results=web_search_results,
+            )
 
         # TODO: Separate the response based on stream true or false
 

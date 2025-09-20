@@ -74,9 +74,18 @@ async def chat(
     if request.tools is not None and request.tools.assistants:
         tool_assistant_id = request.tools.assistants[0].id
 
-    # Log image generation mode for debugging (simple logging only)
-    if request.image_generation:
-        logger.info(f"[Chat Router] Image generation mode enabled - LLM will use generate_image tool")
+    # Log image generation configuration
+    if request.image_generation or request.image_generation_params:
+        if request.image_generation_params:
+            logger.info(f"[Chat Router] Image generation enabled with parameters: "
+                       f"model={request.image_generation_params.model}, "
+                       f"size={request.image_generation_params.size}, "
+                       f"quality={request.image_generation_params.quality}, "
+                       f"n={request.image_generation_params.n}")
+        else:
+            logger.info(f"[Chat Router] Image generation enabled (legacy boolean mode)")
+    else:
+        logger.debug(f"[Chat Router] Image generation disabled")
     
     # Use the dedicated ConversationService to handle routing logic
     conversation_service = container.conversation_service()

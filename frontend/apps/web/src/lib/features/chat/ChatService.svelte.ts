@@ -226,20 +226,45 @@ export class ChatService {
       } catch (error) {
         const streamAborted = error instanceof Error && error.message.includes("aborted");
         if (streamAborted) {
-          // In that case nothing more to do, just return
+          console.log('[ChatService] Request was aborted by user');
           return;
         }
 
+        console.error('[ChatService] Error during conversation request:', error);
+
         let message = "We encountered an error processing your request.";
+
         if (error instanceof IntricError) {
+          console.error('[ChatService] IntricError details:', {
+            code: error.code,
+            message: error.getReadableMessage(),
+            context: error.context
+          });
           message += `\n\`\`\`\n${error.code}: "${error.getReadableMessage()}"\n\`\`\``;
-        } else if (error instanceof Object && "message" in error && "name" in error) {
-          message += `\n\`\`\`\n$"${error.name}: error.message}"\n\`\`\``;
+        } else if (error instanceof Error) {
+          console.error('[ChatService] Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+          });
+          message += `\n\`\`\`\n${error.name}: "${error.message}"\n\`\`\``;
+        } else {
+          console.error('[ChatService] Unknown error type:', error);
         }
 
-        this.currentConversation.messages[this.currentConversation.messages?.length - 1].answer =
-          message;
-        console.error(error);
+        // Special handling for image generation errors
+        if (imageParams?.imageGeneration && error instanceof Error) {
+          if (error.message.includes('Authentication') || error.message.includes('API key')) {
+            message = "Image generation failed: Please check your API keys are configured correctly.";
+          } else if (error.message.includes('Rate limit')) {
+            message = "Image generation failed: Rate limit exceeded. Please try again later.";
+          } else if (error.message.includes('Image generation failed')) {
+            message = `Image generation error: ${error.message}`;
+          }
+        }
+
+        this.currentConversation.messages[this.currentConversation.messages?.length - 1].answer = message;
+        console.error('[ChatService] Final error message shown to user:', message);
       }
 
       this.reloadHistory();
