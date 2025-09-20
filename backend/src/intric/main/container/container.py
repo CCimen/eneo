@@ -423,6 +423,7 @@ class Container(containers.DeclarativeContainer):
         completion_model_repo=completion_model_repo2,
         transcription_model_repo=transcription_model_repo,
         embedding_model_repo=embedding_model_repo2,
+        image_generation_model_repo=image_generation_model_repo2,
     )
     app_template_repo = providers.Factory(
         AppTemplateRepository, factory=app_template_factory, session=session
@@ -541,6 +542,7 @@ class Container(containers.DeclarativeContainer):
         embedding_model_crud_service=embedding_model_crud_service,
         completion_model_crud_service=completion_model_crud_service,
         transcription_model_crud_service=transcription_model_crud_service,
+        image_generation_model_crud_service=image_generation_model_crud_service,
         completion_model_service=completion_model_service,
         transcription_model_service=transcription_model_service,
         actor_manager=actor_manager,

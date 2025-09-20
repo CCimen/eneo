@@ -4,7 +4,22 @@ import { isValidChatPartnerType } from "$lib/features/chat/isValidChatPartnerTyp
 
 export const load: PageLoad = async (event) => {
   const { intric, currentSpace } = await event.parent();
-  const partnerType = event.url.searchParams.get("type") ?? "default-assistant";
+
+  // Get type from URL parameters
+  let partnerType = event.url.searchParams.get("type");
+
+  // In space context, if no type is specified and we have an id parameter,
+  // default to "assistant" instead of "default-assistant"
+  if (!partnerType) {
+    const hasIdParam = event.url.searchParams.get("id");
+    if (hasIdParam && !currentSpace.personal) {
+      // Non-personal space with id parameter should default to "assistant"
+      partnerType = "assistant";
+    } else {
+      // Default to "default-assistant" for personal spaces or when no id
+      partnerType = "default-assistant";
+    }
+  }
 
   if (!isValidChatPartnerType(partnerType)) {
     throw new Error("Unknown chat type!");
