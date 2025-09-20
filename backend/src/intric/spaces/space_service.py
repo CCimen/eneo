@@ -11,6 +11,9 @@ from intric.completion_models.domain.completion_model_service import (
 from intric.embedding_models.application.embedding_model_crud_service import (
     EmbeddingModelCRUDService,
 )
+from intric.image_generation_models.application.image_generation_model_crud_service import (
+    ImageGenerationModelCRUDService,
+)
 from intric.main.exceptions import (
     BadRequestException,
     NotFoundException,
@@ -60,6 +63,7 @@ class SpaceService:
         completion_model_service: CompletionModelService,
         transcription_model_crud_service: TranscriptionModelCRUDService,
         transcription_model_service: TranscriptionModelService,
+        image_generation_model_crud_service: ImageGenerationModelCRUDService,
         actor_manager: "ActorManager",
         security_classification_service: "SecurityClassificationService",
     ):
@@ -72,6 +76,7 @@ class SpaceService:
         self.completion_model_service = completion_model_service
         self.transcription_model_crud_service = transcription_model_crud_service
         self.transcription_model_service = transcription_model_service
+        self.image_generation_model_crud_service = image_generation_model_crud_service
         self.actor_manager = actor_manager
         self.security_classification_service = security_classification_service
 
@@ -133,6 +138,7 @@ class SpaceService:
         embedding_model_ids: list[UUID] = None,
         completion_model_ids: list[UUID] = None,
         transcription_model_ids: list[UUID] = None,
+        image_generation_model_ids: list[UUID] = None,
         security_classification: Union[ModelId, NotProvided, None] = NOT_PROVIDED,
     ) -> Space:
         space = await self.get_space(id)
@@ -178,12 +184,22 @@ class SpaceService:
                 for model_id in transcription_model_ids
             ]
 
+        image_generation_models = None
+        if image_generation_model_ids is not None:
+            image_generation_models = [
+                await self.image_generation_model_crud_service.get_image_generation_model(
+                    model_id=model_id
+                )
+                for model_id in image_generation_model_ids
+            ]
+
         space.update(
             name=name,
             description=description,
             completion_models=completion_models,
             embedding_models=embedding_models,
             transcription_models=transcription_models,
+            image_generation_models=image_generation_models,
             security_classification=(
                 space_security_classification
                 if security_classification is not NOT_PROVIDED

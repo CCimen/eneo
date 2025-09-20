@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from intric.completion_models.domain import CompletionModel
     from intric.embedding_models.domain.embedding_model import EmbeddingModel
     from intric.group_chat.domain.entities.group_chat import GroupChat
+    from intric.image_generation_models.domain.image_generation_model import ImageGenerationModel
     from intric.integration.domain.entities.integration_knowledge import (
         IntegrationKnowledge,
     )
@@ -52,6 +53,7 @@ class Space:
         embedding_models: list["EmbeddingModel"],
         completion_models: list["CompletionModel"],
         transcription_models: list[TranscriptionModel],
+        image_generation_models: list["ImageGenerationModel"],
         default_assistant: "Assistant",
         assistants: list["Assistant"],
         apps: list["App"],
@@ -73,6 +75,7 @@ class Space:
         self._embedding_models = embedding_models
         self._completion_models = completion_models
         self._transcription_models = transcription_models
+        self._image_generation_models = image_generation_models
         self.default_assistant = default_assistant
         self.assistants = assistants
         self.group_chats = group_chats
@@ -101,6 +104,9 @@ class Space:
     def is_transcription_model_in_space(self, transcription_model_id: UUID | None) -> bool:
         return transcription_model_id in [model.id for model in self.transcription_models]
 
+    def is_image_generation_model_in_space(self, image_generation_model_id: UUID | None) -> bool:
+        return image_generation_model_id in [model.id for model in self.image_generation_models]
+
     def is_completion_model_available(self, completion_model_id: UUID) -> bool:
         return (
             self.is_completion_model_in_space(completion_model_id)
@@ -117,6 +123,12 @@ class Space:
         return (
             self.is_transcription_model_in_space(transcription_model_id)
             and self.get_transcription_model(transcription_model_id).can_access
+        )
+
+    def is_image_generation_model_available(self, image_generation_model_id: UUID) -> bool:
+        return (
+            self.is_image_generation_model_in_space(image_generation_model_id)
+            and self.get_image_generation_model(image_generation_model_id).can_access
         )
 
     def is_group_in_space(self, group_id: UUID) -> bool:
@@ -188,6 +200,22 @@ class Space:
 
         return sorted_transcription_models[0]  # type: ignore
 
+    def get_latest_image_generation_model(self) -> "ImageGenerationModel":
+        if not self.image_generation_models:
+            return
+        sorted_image_generation_models = sorted(
+            [
+                image_generation_model
+                for image_generation_model in self.image_generation_models
+                if image_generation_model.can_access
+            ],
+            key=lambda model: model.created_at,
+            reverse=True,
+        )
+        if not sorted_image_generation_models:
+            raise NotFoundException("No image generation models found in the space")
+        return sorted_image_generation_models[0]  # type: ignore
+
     def get_default_completion_model(self) -> Optional["CompletionModel"]:
         if not self.completion_models:
             return None
@@ -227,6 +255,19 @@ class Space:
         # Get the most recently added model as a fallback
         return self.get_latest_transcription_model()
 
+    def get_default_image_generation_model(self) -> Optional["ImageGenerationModel"]:
+        """Get the default image generation model from the space.
+        Returns the default model if it exists, otherwise returns the latest model."""
+        if not self.image_generation_models:
+            return None
+        # First try to get the org default model
+        model = filter(lambda m: m.is_org_default and m.can_access, self.image_generation_models)
+        default_model = next(model, None)
+        if default_model is not None:
+            return default_model
+        # Get the most recently added model as a fallback
+        return self.get_latest_image_generation_model()
+
     @property
     def embedding_models(self):
         return self._embedding_models
@@ -265,6 +306,18 @@ class Space:
 
         self._transcription_models = transcription_models
 
+    @property
+    def image_generation_models(self) -> list["ImageGenerationModel"]:
+        return self._image_generation_models
+
+    @image_generation_models.setter
+    def image_generation_models(self, image_generation_models: list["ImageGenerationModel"]):
+        for model in image_generation_models:
+            if not model.can_access:
+                raise UnauthorizedException(UNAUTHORIZED_EXCEPTION_MESSAGE)
+            self.validate_model_security_compatibility(model)
+        self._image_generation_models = image_generation_models
+
     def update(
         self,
         name: str = None,
@@ -272,6 +325,7 @@ class Space:
         embedding_models: list["EmbeddingModel"] = None,
         completion_models: list["CompletionModel"] = None,
         transcription_models: list[TranscriptionModel] = None,
+        image_generation_models: list["ImageGenerationModel"] = None,
         security_classification: Union[SecurityClassification, NotProvided, None] = NOT_PROVIDED,
     ):
         if name is not None:
@@ -314,6 +368,13 @@ class Space:
                         model.security_classification
                     )
                 ]
+                self.image_generation_models = [
+                    model
+                    for model in self.image_generation_models
+                    if not self.security_classification.is_greater_than(
+                        model.security_classification
+                    )
+                ]
 
         if completion_models is not None:
             if self.is_personal():
@@ -332,6 +393,10 @@ class Space:
                 raise BadRequestException("Can not add transcription models to personal space")
 
             self.transcription_models = transcription_models
+        if image_generation_models is not None:
+            if self.is_personal():
+                raise BadRequestException("Can not add image generation models to personal space")
+            self.image_generation_models = image_generation_models
 
     def add_member(self, user: SpaceMember):
         if self.is_personal():
@@ -499,6 +564,9 @@ class Space:
 
     def get_embedding_model(self, embedding_model_id: UUID) -> "EmbeddingModel":
         return self._get_entity(embedding_model_id, self.embedding_models)
+
+    def get_image_generation_model(self, image_generation_model_id: UUID) -> "ImageGenerationModel":
+        return self._get_entity(image_generation_model_id, self.image_generation_models)
 
     def get_website(self, website_id: UUID) -> "Website":
         return self._get_entity(website_id, self.websites)

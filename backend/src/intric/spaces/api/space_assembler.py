@@ -6,6 +6,9 @@ from intric.embedding_models.presentation.embedding_model_models import (
     EmbeddingModelPublic,
 )
 from intric.group_chat.presentation.models import GroupChatSparse
+from intric.image_generation_models.presentation.image_generation_model_models import (
+    ImageGenerationModelPublic,
+)
 from intric.integration.presentation.assemblers.integration_knowledge_assembler import (
     IntegrationKnowledgeAssembler,
 )
@@ -341,6 +344,11 @@ class SpaceAssembler:
             for model in space.transcription_models
             if model.is_org_enabled
         ]
+        image_generation_models = [
+            ImageGenerationModelPublic.from_domain(model)
+            for model in space.image_generation_models
+            if model.is_org_enabled
+        ]
         default_assistant = self.assistant_assembler.from_assistant_to_default_assistant_model(
             space.default_assistant,
             permissions=self._get_default_assistant_permissions(space),
@@ -359,6 +367,7 @@ class SpaceAssembler:
             embedding_models=embedding_models,
             completion_models=completion_models,
             transcription_models=transcription_models,
+            image_generation_models=image_generation_models,
             default_assistant=default_assistant,
             applications=applications,
             knowledge=knowledge,
@@ -425,4 +434,5 @@ class SpaceAssembler:
                 TranscriptionModelPublic.from_domain(tm)
                 for tm in result.affected_transcription_models
             ],
+            image_generation_models=[],  # TODO: Add affected_image_generation_models to SpaceSecurityClassificationImpactAnalysis
         )

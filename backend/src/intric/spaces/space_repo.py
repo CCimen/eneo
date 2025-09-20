@@ -13,6 +13,8 @@ from intric.database.tables.ai_models_table import (
     CompletionModelSettings,
     EmbeddingModels,
     EmbeddingModelSettings,
+    ImageGenerationModels,
+    ImageGenerationModelSettings,
     TranscriptionModels,
     TranscriptionModelSettings,
 )
@@ -42,6 +44,7 @@ from intric.database.tables.spaces_table import (
     Spaces,
     SpacesCompletionModels,
     SpacesEmbeddingModels,
+    SpacesImageGenerationModels,
     SpacesTranscriptionModels,
     SpacesUsers,
 )
@@ -64,6 +67,9 @@ if TYPE_CHECKING:
         EmbeddingModelRepository,
     )
     from intric.group_chat.domain.entities.group_chat import GroupChat
+    from intric.image_generation_models.domain.image_generation_model_domain_repo import (
+        ImageGenerationModelDomainRepository as ImageGenerationModelRepository,
+    )
     from intric.transcription_models.domain.transcription_model_repo import (
         TranscriptionModelRepository,
     )
@@ -82,6 +88,7 @@ class SpaceRepository:
         completion_model_repo: "CompletionModelRepository",
         transcription_model_repo: "TranscriptionModelRepository",
         embedding_model_repo: "EmbeddingModelRepository",
+        image_generation_model_repo: "ImageGenerationModelRepository",
     ):
         self.session = session
         self.user = user
@@ -90,6 +97,7 @@ class SpaceRepository:
         self.completion_model_repo = completion_model_repo
         self.transcription_model_repo = transcription_model_repo
         self.embedding_model_repo = embedding_model_repo
+        self.image_generation_model_repo = image_generation_model_repo
         self.assistant_repo = assistant_repo
 
     def _options(self):
@@ -106,6 +114,7 @@ class SpaceRepository:
             selectinload(Spaces.completion_models_mapping),
             selectinload(Spaces.embedding_models_mapping),
             selectinload(Spaces.transcription_models_mapping),
+            selectinload(Spaces.image_generation_models_mapping),
             selectinload(Spaces.security_classification),
             selectinload(Spaces.security_classification).selectinload(
                 SecurityClassificationDBModel.tenant
@@ -201,6 +210,30 @@ class SpaceRepository:
         res = await self.session.execute(stmt)
         return res.all()
 
+    async def _get_image_generation_models(self, space_in_db: Spaces):
+        space_id = space_in_db.id
+        tenant_id = space_in_db.tenant_id
+
+        igm = aliased(ImageGenerationModels)
+        igms = aliased(ImageGenerationModelSettings)
+        sigm = aliased(SpacesImageGenerationModels)
+
+        stmt = (
+            sa.select(igm, igms)
+            .join(sigm, sigm.image_generation_model_id == igm.id)
+            .outerjoin(
+                igms,
+                sa.and_(
+                    igms.image_generation_model_id == igm.id,
+                    igms.tenant_id == tenant_id,
+                ),
+            )
+            .filter(sigm.space_id == space_id)
+        )
+
+        res = await self.session.execute(stmt)
+        return res.all()
+
     async def _set_embedding_models(
         self, space_in_db: Spaces, embedding_models: list[EmbeddingModelSparse]
     ):
@@ -251,6 +284,23 @@ class SpaceRepository:
                 [
                     dict(transcription_model_id=model.id, space_id=space_in_db.id)
                     for model in transcription_models
+                ]
+            )
+            await self.session.execute(stmt)
+
+    async def _set_image_generation_models(
+        self, space_in_db: Spaces, image_generation_models: list["ImageGenerationModel"]
+    ):
+        # Delete all
+        stmt = sa.delete(SpacesImageGenerationModels).where(
+            SpacesImageGenerationModels.space_id == space_in_db.id
+        )
+        await self.session.execute(stmt)
+        if image_generation_models:
+            stmt = sa.insert(SpacesImageGenerationModels).values(
+                [
+                    dict(image_generation_model_id=model.id, space_id=space_in_db.id)
+                    for model in image_generation_models
                 ]
             )
             await self.session.execute(stmt)
@@ -620,6 +670,7 @@ class SpaceRepository:
         completion_models = await self.completion_model_repo.all(with_deprecated=True)
         embedding_models = await self.embedding_model_repo.all(with_deprecated=True)
         transcription_models = await self.transcription_model_repo.all(with_deprecated=True)
+        image_generation_models = await self.image_generation_model_repo.all(with_deprecated=True)
 
         assistants = await self._get_assistants(space_id=entry_in_db.id)
         apps = await self._get_apps(space_id=entry_in_db.id)
@@ -634,6 +685,7 @@ class SpaceRepository:
             completion_models=completion_models,
             embedding_models=embedding_models,
             transcription_models=transcription_models,
+            image_generation_models=image_generation_models,
             assistants_in_db=assistants,
             group_chats_in_db=group_chats,
             apps_in_db=apps,
@@ -673,6 +725,7 @@ class SpaceRepository:
         await self._set_completion_models(entry_in_db, space.completion_models)
         await self._set_embedding_models(entry_in_db, space.embedding_models)
         await self._set_transcription_models(entry_in_db, space.transcription_models)
+        await self._set_image_generation_models(entry_in_db, space.image_generation_models)
         await self._set_members(entry_in_db, space.members)
         await self._set_default_assistant(entry_in_db, space.default_assistant)
         await self._set_collections(entry_in_db, space.collections)
@@ -713,6 +766,7 @@ class SpaceRepository:
         await self._set_completion_models(entry_in_db, space.completion_models)
         await self._set_embedding_models(entry_in_db, space.embedding_models)
         await self._set_transcription_models(entry_in_db, space.transcription_models)
+        await self._set_image_generation_models(entry_in_db, space.image_generation_models)
         await self._set_members(entry_in_db, space.members)
         await self._set_default_assistant(entry_in_db, space.default_assistant)
         await self._set_collections(entry_in_db, space.collections)

@@ -101,6 +101,7 @@ async def update_space(
         embedding_model_ids=_get_model_ids_or_none(update_space_req.embedding_models),
         completion_model_ids=_get_model_ids_or_none(update_space_req.completion_models),
         transcription_model_ids=_get_model_ids_or_none(update_space_req.transcription_models),
+        image_generation_model_ids=_get_model_ids_or_none(update_space_req.image_generation_models),
         security_classification=security_classification,
     )
 

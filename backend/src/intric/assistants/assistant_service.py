@@ -612,7 +612,23 @@ class AssistantService:
         logger.info(f"[Assistant Service] Image generation mode: {image_generation}")
 
         if image_generation:
-            logger.info(f"[Assistant Service] Routing to image generation for assistant: {assistant_to_ask.name}")
+            logger.info(f"[Assistant Service] Routing to image generation for assistant: {assistant_to_ask.name} (ID: {assistant_to_ask.id})")
+            logger.info(f"[Assistant Service] Active assistant: {active_assistant.name} (ID: {active_assistant.id})")
+            logger.info(f"[Assistant Service] Space: {space.name} (ID: {space.id})")
+
+            # Check space permissions for image generation before proceeding
+            try:
+                # Get a default model to check permissions (similar to how image generation service works)
+                default_model = await self.image_generation_service.get_default_model()
+                if default_model:
+                    self.image_generation_service.check_space_permissions(space, default_model)
+                    logger.debug(f"[Assistant Service] Space permission check passed for image generation in space {space.name}")
+                else:
+                    raise BadRequestException("No image generation models enabled")
+            except Exception as e:
+                logger.error(f"[Assistant Service] Image generation permission check failed: {e}")
+                raise
+
             response, datastore_result = await assistant_to_ask.ask(
                 question=cleaned_question,
                 completion_service=self.completion_service,

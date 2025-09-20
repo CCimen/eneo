@@ -18,6 +18,9 @@ from intric.embedding_models.presentation.embedding_model_models import (
     EmbeddingModelPublic,
 )
 from intric.group_chat.presentation.models import GroupChatSparse
+from intric.image_generation_models.presentation.image_generation_model_models import (
+    ImageGenerationModelPublic,
+)
 from intric.groups_legacy.api.group_models import GroupMetadata, GroupPublicWithMetadata
 from intric.integration.presentation.models import IntegrationKnowledgePublic
 from intric.main.models import (
@@ -94,6 +97,7 @@ class UpdateSpaceRequest(BaseModel):
     embedding_models: list[ModelId]
     completion_models: list[ModelId]
     transcription_models: list[ModelId]
+    image_generation_models: list[ModelId]
 
     security_classification: Union[ModelId, NotProvided, None] = Field(
         default=NOT_PROVIDED,
@@ -113,6 +117,7 @@ class UpdateSpaceDryRunResponse(BaseModel):
     completion_models: list[CompletionModelPublic]
     embedding_models: list[EmbeddingModelPublic]
     transcription_models: list[TranscriptionModelPublic]
+    image_generation_models: list[ImageGenerationModelPublic]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -153,6 +158,7 @@ class SpacePublic(SpaceDashboard):
     embedding_models: list[EmbeddingModelPublic]
     completion_models: list[CompletionModelPublic]
     transcription_models: list[TranscriptionModelPublic]
+    image_generation_models: list[ImageGenerationModelPublic]
     knowledge: Knowledge
     members: PaginatedPermissions[SpaceMember]
 

@@ -122,6 +122,10 @@ class ConversationService:
                 )
             elif assistant_id:
                 # starting a new assistant conversation
+                from intric.main.logging import get_logger
+                logger = get_logger(__name__)
+                logger.info(f"[Conversation Service] Starting new conversation with assistant_id: {assistant_id}")
+
                 return await self.assistant_service.ask(
                     question=question,
                     assistant_id=assistant_id,

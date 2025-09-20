@@ -18,8 +18,12 @@ export function getChatQueryParams({
     tab: tab ?? currentParams.get("tab") ?? undefined
   };
 
-  // Only add partner info if not a default assistant
-  if (chatPartner?.type !== "default-assistant") {
+  // Check if we're in a space context (URL contains /spaces/)
+  const isInSpaceContext = page.url.pathname.includes("/spaces/");
+
+  // Only add partner info if not a default assistant, UNLESS we're in a space context
+  // In space context, we always preserve the type and id parameters to maintain assistant context
+  if (chatPartner?.type !== "default-assistant" || isInSpaceContext) {
     paramMap["type"] = chatPartner?.type ?? currentParams.get("type") ?? undefined;
     paramMap["id"] = chatPartner?.id ?? currentParams.get("id") ?? undefined;
   }

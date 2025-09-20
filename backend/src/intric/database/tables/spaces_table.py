@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from intric.database.tables.ai_models_table import (
     CompletionModels,
     EmbeddingModels,
+    ImageGenerationModels,
     TranscriptionModels,
 )
 from intric.database.tables.base_class import BaseCrossReference, BasePublic
@@ -49,6 +50,9 @@ class Spaces(BasePublic):
     transcription_models: Mapped[list[TranscriptionModels]] = relationship(
         secondary="spaces_transcription_models", order_by=TranscriptionModels.created_at
     )
+    image_generation_models: Mapped[list[ImageGenerationModels]] = relationship(
+        secondary="spaces_image_generation_models", order_by=ImageGenerationModels.created_at
+    )
     members: Mapped[list["SpacesUsers"]] = relationship(
         order_by="SpacesUsers.created_at", viewonly=True
     )
@@ -72,6 +76,9 @@ class Spaces(BasePublic):
         viewonly=True
     )
     transcription_models_mapping: Mapped[list["SpacesTranscriptionModels"]] = (
+        relationship(viewonly=True)
+    )
+    image_generation_models_mapping: Mapped[list["SpacesImageGenerationModels"]] = (
         relationship(viewonly=True)
     )
 
@@ -100,6 +107,15 @@ class SpacesTranscriptionModels(BaseCrossReference):
     )
     transcription_model_id: Mapped[UUID] = mapped_column(
         ForeignKey(TranscriptionModels.id, ondelete="CASCADE"), primary_key=True
+    )
+
+
+class SpacesImageGenerationModels(BaseCrossReference):
+    space_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Spaces.id, ondelete="CASCADE"), primary_key=True
+    )
+    image_generation_model_id: Mapped[UUID] = mapped_column(
+        ForeignKey(ImageGenerationModels.id, ondelete="CASCADE"), primary_key=True
     )
 
 

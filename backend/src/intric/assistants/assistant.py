@@ -343,6 +343,8 @@ class Assistant(Entity):
             logger.info(f"[Assistant] Routing to image generation service for space: {self.space_id}")
 
             try:
+                # Note: Space context should be passed from the assistant service
+                # For now, generate image without space context (will be fixed in assistant service)
                 # Generate image directly using image generation service
                 image_bytes = await image_generation_service.generate_image(
                     prompt=question

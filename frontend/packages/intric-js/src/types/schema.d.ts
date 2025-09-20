@@ -4185,6 +4185,8 @@ export interface components {
       completion_models?: components["schemas"]["ModelId"][] | null;
       /** Transcription Models */
       transcription_models?: components["schemas"]["ModelId"][] | null;
+      /** Image Generation Models */
+      image_generation_models?: components["schemas"]["ModelId"][] | null;
       /**
        * Security Classification
        * @description ID of the security classification to apply to this space. Set to null to remove the security classification. Omit to keep the current security classification unchanged.
@@ -4869,6 +4871,8 @@ export interface components {
       completion_models: components["schemas"]["CompletionModelPublic"][];
       /** Transcription Models */
       transcription_models: components["schemas"]["TranscriptionModelPublic"][];
+      /** Image Generation Models */
+      image_generation_models: components["schemas"]["ImageGenerationModelPublic"][];
       knowledge: components["schemas"]["Knowledge"];
       members: components["schemas"]["PaginatedPermissions_SpaceMember_"];
       default_assistant: components["schemas"]["DefaultAssistant"];
@@ -5361,6 +5365,8 @@ export interface components {
       embedding_models: components["schemas"]["EmbeddingModelPublic"][];
       /** Transcription Models */
       transcription_models: components["schemas"]["TranscriptionModelPublic"][];
+      /** Image Generation Models */
+      image_generation_models: components["schemas"]["ImageGenerationModelPublic"][];
     };
     /** UpdateSpaceMemberRequest */
     UpdateSpaceMemberRequest: {

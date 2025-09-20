@@ -110,6 +110,11 @@
   onclick={() => {
     focusMentionInput();
   }}
+  onsubmit={(e) => {
+    // Prevent default form submission - we handle submission via the Send button click
+    e.preventDefault();
+    ask();
+  }}
   class="border-default bg-primary ring-dimmer focus-within:border-stronger hover:border-stronger flex w-[100%] max-w-[74ch] flex-col gap-2 border-t p-1.5 shadow-md ring-offset-0 transition-colors duration-300 focus-within:shadow-lg hover:ring-4 md:w-full md:rounded-xl md:border"
 >
   <MentionInput onpaste={queueUploadsFromClipboard}></MentionInput>
@@ -123,6 +128,7 @@
       <Tooltip text="Toggle image generation mode" placement="top" let:trigger asFragment>
         <Button
           unstyled
+          type="button"
           aria-label="Toggle image generation mode"
           is={trigger}
           on:click={() => {

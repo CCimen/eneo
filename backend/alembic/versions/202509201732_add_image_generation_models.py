@@ -56,8 +56,21 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('tenant_id', 'image_generation_model_id')
     )
 
+    # Create spaces_image_generation_models junction table
+    op.create_table(
+        'spaces_image_generation_models',
+        sa.Column('created_at', postgresql.TIMESTAMP(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', postgresql.TIMESTAMP(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('space_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('image_generation_model_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.ForeignKeyConstraint(['image_generation_model_id'], ['image_generation_models.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['space_id'], ['spaces.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('space_id', 'image_generation_model_id')
+    )
+
 
 def downgrade() -> None:
     # Drop tables in reverse order
+    op.drop_table('spaces_image_generation_models')
     op.drop_table('image_generation_model_settings')
     op.drop_table('image_generation_models')
