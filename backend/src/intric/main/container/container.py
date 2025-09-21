@@ -898,6 +898,7 @@ class Container(containers.DeclarativeContainer):
         transcriber=transcriber,
         app_template_service=app_template_service,
         actor_manager=actor_manager,
+        image_generation_service=image_generation_service,
     )
     app_run_service = providers.Factory(
         AppRunService,

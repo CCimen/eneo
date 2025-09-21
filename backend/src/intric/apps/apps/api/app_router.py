@@ -58,6 +58,11 @@ async def update_app(
         if update_service_req.transcription_model is not None
         else None
     )
+    image_generation_model_id = (
+        update_service_req.image_generation_model.id
+        if update_service_req.image_generation_model is not None
+        else None
+    )
     prompt_text = update_service_req.prompt.text if update_service_req.prompt is not None else None
     prompt_description = (
         update_service_req.prompt.description if update_service_req.prompt is not None else None
@@ -75,6 +80,8 @@ async def update_app(
         prompt_description=prompt_description,
         transcription_model_id=transcription_model_id,
         data_retention_days=update_service_req.data_retention_days,
+        output_type=update_service_req.output_type,
+        image_generation_model_id=image_generation_model_id,
     )
 
     return assembler.from_app_to_model(app, permissions=permissions)

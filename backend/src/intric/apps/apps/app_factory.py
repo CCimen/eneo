@@ -4,7 +4,7 @@ from intric.ai_models.completion_models.completion_model import (
     CompletionModelSparse,
     ModelKwargs,
 )
-from intric.apps.apps.api.app_models import InputField, InputFieldType
+from intric.apps.apps.api.app_models import InputField, InputFieldType, OutputType
 from intric.apps.apps.app import App
 from intric.database.tables.app_table import Apps
 from intric.files.file_models import File
@@ -17,6 +17,9 @@ from intric.users.user import UserInDB
 if TYPE_CHECKING:
     from intric.completion_models.domain.completion_model import CompletionModel
     from intric.files.file_models import FileInfo
+    from intric.image_generation_models.domain.image_generation_model import (
+        ImageGenerationModel,
+    )
     from intric.templates.app_template.app_template import AppTemplate
     from intric.templates.app_template.app_template_factory import AppTemplateFactory
 
@@ -36,6 +39,8 @@ class AppFactory:
         completion_model: "CompletionModel",
         transcription_model: TranscriptionModel,
         input_fields: list[InputField] = None,
+        output_type: OutputType = OutputType.TEXT,
+        image_generation_model: Optional["ImageGenerationModel"] = None,
     ):
         # Default to text field if no input fields provided
         if input_fields is None:
@@ -57,6 +62,8 @@ class AppFactory:
             attachments=[],
             published=False,
             transcription_model=transcription_model,
+            output_type=output_type,
+            image_generation_model=image_generation_model,
         )
 
     def create_app_from_template(
@@ -70,6 +77,8 @@ class AppFactory:
         prompt: Prompt | None = None,
         attachments: Optional[list["FileInfo"]] = None,
         transcription_model: TranscriptionModel = None,
+        output_type: OutputType = OutputType.TEXT,
+        image_generation_model: Optional["ImageGenerationModel"] = None,
     ) -> App:
         app = App(
             user_id=user.id,
@@ -88,6 +97,8 @@ class AppFactory:
             published=False,
             source_template=template,
             transcription_model=transcription_model,
+            output_type=output_type,
+            image_generation_model=image_generation_model,
         )
 
         return app
@@ -97,6 +108,7 @@ class AppFactory:
         app_in_db: Apps,
         prompt: Prompt = None,
         transcription_model: TranscriptionModel = None,
+        image_generation_model: Optional["ImageGenerationModel"] = None,
     ):
         completion_model = CompletionModelSparse.model_validate(app_in_db.completion_model)
         input_fields = [
@@ -114,6 +126,8 @@ class AppFactory:
             if app_in_db.template
             else None
         )
+
+        output_type = OutputType(app_in_db.output_type) if app_in_db.output_type else OutputType.TEXT
 
         return App(
             created_at=app_in_db.created_at,
@@ -133,6 +147,8 @@ class AppFactory:
             source_template=source_template,
             transcription_model=transcription_model,
             data_retention_days=app_in_db.data_retention_days,
+            output_type=output_type,
+            image_generation_model=image_generation_model,
         )
 
     def create_space_app_from_db(
@@ -140,6 +156,7 @@ class AppFactory:
         app_in_db: Apps,
         completion_models: list["CompletionModel"] = [],
         transcription_models: list[TranscriptionModel] = [],
+        image_generation_models: list["ImageGenerationModel"] = [],
     ):
         if app_in_db.prompt is not None:
             prompt = PromptFactory.create_prompt_from_db(
@@ -178,6 +195,17 @@ class AppFactory:
             None,
         )
 
+        image_generation_model = next(
+            (
+                model
+                for model in image_generation_models
+                if model.id == app_in_db.image_generation_model_id
+            ),
+            None,
+        )
+
+        output_type = OutputType(app_in_db.output_type) if app_in_db.output_type else OutputType.TEXT
+
         return App(
             created_at=app_in_db.created_at,
             updated_at=app_in_db.updated_at,
@@ -196,4 +224,6 @@ class AppFactory:
             source_template=source_template,
             transcription_model=transcription_model,
             data_retention_days=app_in_db.data_retention_days,
+            output_type=output_type,
+            image_generation_model=image_generation_model,
         )

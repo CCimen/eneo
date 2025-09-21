@@ -235,6 +235,7 @@ class SpaceFactory:
                 app_in_db=app,
                 completion_models=completion_models,
                 transcription_models=transcription_models,
+                image_generation_models=image_generation_models,
             )
             for app in apps_in_db
         ]

@@ -23,6 +23,7 @@ class AppRunRepository:
             .selectinload(AppRunsFiles.file)
             .options(defer(Files.blob)),
             selectinload(AppRuns.job),
+            selectinload(AppRuns.output_image).options(defer(Files.blob)),
         ]
 
     async def _get_with_options(self, stmt, multiple=False):
@@ -73,6 +74,8 @@ class AppRunRepository:
             .values(
                 input_text=app_run.input_text,
                 output_text=app_run.output,
+                output_type=app_run.output_type,
+                output_image_id=app_run.output_image_id,
                 num_tokens_input=app_run.num_tokens_input,
                 num_tokens_output=app_run.num_tokens_output,
                 tenant_id=app_run.tenant_id,
@@ -97,6 +100,8 @@ class AppRunRepository:
             .values(
                 job_id=app_run.job_id,
                 output_text=app_run.output,
+                output_type=app_run.output_type,
+                output_image_id=app_run.output_image_id,
                 num_tokens_input=app_run.num_tokens_input,
                 num_tokens_output=app_run.num_tokens_output,
             )

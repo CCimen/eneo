@@ -24,12 +24,17 @@ class AppRun:
     num_tokens_output: int | None
     job: JobInDb | None
     completion_model_id: UUID
+    output_type: str = "text"
+    output_image_id: UUID | None = None
+    output_image: FilePublic | None = None
 
     def update(
         self,
         *,
         job_id: UUID | None = None,
         output: str | None = None,
+        output_type: str | None = None,
+        output_image_id: UUID | None = None,
         num_tokens_input: int | None = None,
         num_tokens_output: int | None = None
     ):
@@ -38,6 +43,12 @@ class AppRun:
 
         if output is not None:
             self.output = output
+
+        if output_type is not None:
+            self.output_type = output_type
+
+        if output_image_id is not None:
+            self.output_image_id = output_image_id
 
         if num_tokens_input is not None:
             self.num_tokens_input = num_tokens_input

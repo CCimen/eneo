@@ -50,13 +50,14 @@
 
 <script lang="ts">
   import { IconCPU } from "@intric/icons/CPU";
-  import type { CompletionModel, EmbeddingModel, TranscriptionModel } from "@intric/intric-js";
+  import type { CompletionModel, EmbeddingModel, TranscriptionModel, ImageGenerationModel } from "@intric/intric-js";
   import { Tooltip } from "@intric/ui";
 
   export let model:
     | CompletionModel
     | EmbeddingModel
     | TranscriptionModel
+    | ImageGenerationModel
     | { org: string; nickname: string; name: string; description: string };
   export let size: "card" | "table" = "table";
 

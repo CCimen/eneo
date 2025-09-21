@@ -22,6 +22,11 @@ class AppRunAssembler:
         files = [self._to_file_public(file) for file in app_run.input_files]
         finished_at, status = self._get_job_fields(app_run.job)
 
+        # Handle output_image if present
+        output_image = None
+        if app_run.output_image:
+            output_image = self._to_file_public(app_run.output_image)
+
         return AppRunPublic(
             created_at=app_run.created_at,
             updated_at=app_run.updated_at,
@@ -31,6 +36,8 @@ class AppRunAssembler:
                 text=app_run.input_text,
             ),
             output=app_run.output,
+            output_type=app_run.output_type,
+            output_image=output_image,
             finished_at=finished_at,
             status=status,
             user=app_run.user,

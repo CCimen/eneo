@@ -2,18 +2,21 @@ from typing import TYPE_CHECKING, Optional, Union
 from uuid import UUID
 
 from intric.ai_models.completion_models.completion_model import ModelKwargs
-from intric.apps.apps.api.app_models import InputField, InputFieldType
+from intric.apps.apps.api.app_models import InputField, InputFieldType, OutputType
 from intric.apps.apps.app import App
 from intric.apps.apps.app_factory import AppFactory
 from intric.apps.apps.app_repo import AppRepository
 from intric.files.file_service import FileService
 from intric.files.transcriber import Transcriber
 from intric.main.exceptions import BadRequestException, UnauthorizedException
+from intric.main.logging import get_logger
 from intric.main.models import NOT_PROVIDED, ModelId, NotProvided
 from intric.prompts.prompt_service import PromptService
 from intric.spaces.api.space_models import WizardType
 from intric.spaces.space import Space
 from intric.users.user import UserInDB
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from intric.actors import ActorManager
@@ -21,6 +24,12 @@ if TYPE_CHECKING:
     from intric.completion_models.application import CompletionModelCRUDService
     from intric.completion_models.infrastructure.completion_service import (
         CompletionService,
+    )
+    from intric.image_generation_models.application.image_generation_service import (
+        ImageGenerationService,
+    )
+    from intric.image_generation_models.domain.image_generation_model import (
+        ImageGenerationModel,
     )
     from intric.prompts.prompt import Prompt
     from intric.spaces.api.space_models import TemplateCreate
@@ -49,6 +58,7 @@ class AppService:
         actor_manager: "ActorManager",
         transcription_model_crud_service: "TranscriptionModelCRUDService",
         completion_service: "CompletionService",
+        image_generation_service: Optional["ImageGenerationService"] = None,
     ):
         self.user = user
         self.repo = repo
@@ -62,6 +72,7 @@ class AppService:
         self.actor_manager = actor_manager
         self.transcription_model_crud_service = transcription_model_crud_service
         self.completion_service = completion_service
+        self.image_generation_service = image_generation_service
 
     async def create_app(
         self, name: str, space: Space, template_data: Optional["TemplateCreate"] = None
@@ -189,6 +200,8 @@ class AppService:
         prompt_description: str | None = None,
         transcription_model_id: UUID | None = None,
         data_retention_days: Union[int, None, NotProvided] = NOT_PROVIDED,
+        output_type: OutputType | None = None,
+        image_generation_model_id: UUID | None = None,
     ) -> App:
         space = await self.space_repo.get_space_by_app(app_id=app_id)
         app = space.get_app(app_id=app_id)
@@ -220,6 +233,18 @@ class AppService:
                     )
                 )
 
+        image_generation_model = None
+        if image_generation_model_id is not None:
+            if not space.is_image_generation_model_in_space(image_generation_model_id):
+                raise BadRequestException("The image generation model is not enabled in the space.")
+            else:
+                if self.image_generation_service:
+                    image_generation_model = await self.image_generation_service.image_generation_repo.one(
+                        image_generation_model_id
+                    )
+                else:
+                    raise BadRequestException("Image generation service not available")
+
         attachments = None
         if attachment_ids is not None:
             attachments = await self.file_service.get_file_infos(
@@ -242,6 +267,8 @@ class AppService:
             prompt=prompt,
             transcription_model=transcription_model,
             data_retention_days=data_retention_days,
+            output_type=output_type,
+            image_generation_model=image_generation_model,
         )
 
         app_in_db = await self.repo.update(app)
@@ -265,6 +292,8 @@ class AppService:
         app = space.get_app(app_id=app_id)
         actor = self.actor_manager.get_space_actor_from_space(space)
 
+        logger.debug(f"Running app {app_id} with output_type: {app.output_type}")
+
         if not actor.can_read_app(app=app):
             raise UnauthorizedException()
 
@@ -275,12 +304,20 @@ class AppService:
             file_ids=file_ids, include_transcription=True
         )
 
-        return await app.run(
-            files=files,
-            text=text,
-            completion_service=self.completion_service,
-            transcriber=self.transcriber,
-        )
+        try:
+            result = await app.run(
+                files=files,
+                text=text,
+                completion_service=self.completion_service,
+                transcriber=self.transcriber,
+                image_generation_service=self.image_generation_service,
+            )
+            logger.debug(f"App run completed successfully for app {app_id}")
+        except Exception as e:
+            logger.error(f"Failed to run app {app_id}: {str(e)}")
+            raise
+
+        return result
 
     async def get_prompts_by_app(self, app_id: UUID) -> list["Prompt"]:
         space = await self.space_repo.get_space_by_app(app_id=app_id)

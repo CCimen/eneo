@@ -631,6 +631,8 @@ class SpaceRepository:
                 selectinload(Apps.input_fields),
                 selectinload(Apps.attachments).selectinload(AppsFiles.file),
                 selectinload(Apps.template),
+                selectinload(Apps.completion_model),
+                selectinload(Apps.image_generation_model),
             )
             .order_by(Apps.created_at)
         )

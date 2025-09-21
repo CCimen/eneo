@@ -4,6 +4,7 @@
 
   import { Button } from "@intric/ui";
   import AppSettingsInput from "./AppSettingsInput.svelte";
+  import AppSettingsOutput from "./AppSettingsOutput.svelte";
   import { afterNavigate, beforeNavigate } from "$app/navigation";
 
   import { fade } from "svelte/transition";
@@ -157,6 +158,10 @@
 
       <Settings.Group title="Input">
         <AppSettingsInput></AppSettingsInput>
+      </Settings.Group>
+
+      <Settings.Group title="Output">
+        <AppSettingsOutput></AppSettingsOutput>
       </Settings.Group>
 
       <Settings.Group title="Instructions">

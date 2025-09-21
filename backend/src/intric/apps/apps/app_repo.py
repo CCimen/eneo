@@ -129,6 +129,10 @@ class AppRepository:
             None if app.transcription_model is None else app.transcription_model.id
         )
 
+        image_generation_model_id = (
+            None if app.image_generation_model is None else app.image_generation_model.id
+        )
+
         template_id = app.source_template.id if app.source_template else None
         stmt = (
             sa.insert(Apps)
@@ -143,6 +147,8 @@ class AppRepository:
                 published=app.published,
                 template_id=template_id,
                 transcription_model_id=transcription_model_id,
+                output_type=app.output_type.value,
+                image_generation_model_id=image_generation_model_id,
             )
             .returning(Apps)
         )
@@ -156,7 +162,10 @@ class AppRepository:
         await self._set_attachments(entry_in_db, app.attachments)
 
         return self.factory.create_app_from_db(
-            entry_in_db, prompt=app.prompt, transcription_model=app.transcription_model
+            entry_in_db,
+            prompt=app.prompt,
+            transcription_model=app.transcription_model,
+            image_generation_model=app.image_generation_model
         )
 
     async def get(self, id: UUID) -> App:
@@ -176,8 +185,15 @@ class AppRepository:
                 entry_in_db.transcription_model_id
             )
 
+        # Get image generation model - we'll need to add this to the repo later
+        # For now, just pass None since we don't have the image_generation_model_repo yet
+        image_generation_model = None
+
         return self.factory.create_app_from_db(
-            entry_in_db, prompt=prompt, transcription_model=transcription_model
+            entry_in_db,
+            prompt=prompt,
+            transcription_model=transcription_model,
+            image_generation_model=image_generation_model
         )
 
     async def update(self, app: App) -> App:
@@ -189,6 +205,10 @@ class AppRepository:
 
         transcription_model_id = (
             None if app.transcription_model is None else app.transcription_model.id
+        )
+
+        image_generation_model_id = (
+            None if app.image_generation_model is None else app.image_generation_model.id
         )
 
         stmt = (
@@ -204,6 +224,8 @@ class AppRepository:
                 transcription_model_id=transcription_model_id,
                 published=app.published,
                 data_retention_days=app.data_retention_days,
+                output_type=app.output_type.value,
+                image_generation_model_id=image_generation_model_id,
             )
             .where(Apps.id == app.id)
             .returning(Apps)
@@ -218,7 +240,10 @@ class AppRepository:
         await self._set_attachments(entry_in_db, app.attachments)
 
         return self.factory.create_app_from_db(
-            entry_in_db, prompt=app.prompt, transcription_model=app.transcription_model
+            entry_in_db,
+            prompt=app.prompt,
+            transcription_model=app.transcription_model,
+            image_generation_model=app.image_generation_model
         )
 
     async def delete(self, id: UUID):

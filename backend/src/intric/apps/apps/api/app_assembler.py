@@ -116,6 +116,28 @@ class AppAssembler:
 
         transcription_model = TranscriptionModelPublic.from_domain(app.transcription_model)
 
+        # Handle image generation model
+        from intric.image_generation_models.presentation.image_generation_model_sparse import ImageGenerationModelSparse
+        image_generation_model = None
+        if app.image_generation_model is not None:
+            # Convert domain model to sparse model
+            # Handle enums and convert them to strings
+            image_generation_model = ImageGenerationModelSparse(
+                id=app.image_generation_model.id,
+                created_at=app.image_generation_model.created_at,
+                updated_at=app.image_generation_model.updated_at,
+                name=app.image_generation_model.name,
+                nickname=app.image_generation_model.nickname,
+                family=str(app.image_generation_model.family.value) if hasattr(app.image_generation_model.family, 'value') else str(app.image_generation_model.family),
+                org=str(app.image_generation_model.org.value) if app.image_generation_model.org and hasattr(app.image_generation_model.org, 'value') else str(app.image_generation_model.org) if app.image_generation_model.org else None,
+                is_deprecated=app.image_generation_model.is_deprecated,
+                stability=str(app.image_generation_model.stability.value) if hasattr(app.image_generation_model.stability, 'value') else str(app.image_generation_model.stability),
+                hosting=str(app.image_generation_model.hosting.value) if hasattr(app.image_generation_model.hosting, 'value') else str(app.image_generation_model.hosting),
+                description=app.image_generation_model.description,
+                open_source=app.image_generation_model.open_source,
+                litellm_model_name=app.image_generation_model.litellm_model_name,
+            )
+
         return AppPublic(
             created_at=app.created_at,
             updated_at=app.updated_at,
@@ -132,4 +154,6 @@ class AppAssembler:
             permissions=permissions,
             transcription_model=transcription_model,
             data_retention_days=app.data_retention_days,
+            output_type=app.output_type,
+            image_generation_model=image_generation_model,
         )

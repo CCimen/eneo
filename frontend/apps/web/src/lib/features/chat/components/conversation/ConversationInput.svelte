@@ -14,6 +14,7 @@
   import { getAppContext } from "$lib/core/AppContext";
 
   const chat = getChatService();
+
   const { featureFlags } = getAppContext();
 
   const {
@@ -59,8 +60,7 @@
             })
           }
         : undefined;
-        
-    // Pass simple image generation flag (like web search)
+
     console.log('[Chat Input] Sending message with image mode:', isImageMode);
     console.log('[Chat Input] Question:', $question);
 
@@ -76,7 +76,7 @@
     );
 
     console.log('[Chat Input] Message sent, resetting input');
-    
+
     scrollToBottom();
     resetMentionInput();
     clearUploads();

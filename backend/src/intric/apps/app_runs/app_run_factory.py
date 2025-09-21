@@ -28,6 +28,9 @@ class AppRunFactory:
             input_files=files,
             input_text=text,
             output=None,
+            output_type=app.output_type.value,
+            output_image_id=None,
+            output_image=None,
             user=None,
             num_tokens_input=None,
             num_tokens_output=None,
@@ -46,6 +49,11 @@ class AppRunFactory:
             if app_run_in_db.job is not None
             else None
         )
+        output_image = (
+            FilePublic.model_validate(app_run_in_db.output_image)
+            if app_run_in_db.output_image is not None
+            else None
+        )
 
         return AppRun(
             created_at=app_run_in_db.created_at,
@@ -58,6 +66,9 @@ class AppRunFactory:
             input_files=input_files,
             input_text=app_run_in_db.input_text,
             output=app_run_in_db.output_text,
+            output_type=app_run_in_db.output_type or "text",
+            output_image_id=app_run_in_db.output_image_id,
+            output_image=output_image,
             user=user,
             num_tokens_input=app_run_in_db.num_tokens_input,
             num_tokens_output=app_run_in_db.num_tokens_output,

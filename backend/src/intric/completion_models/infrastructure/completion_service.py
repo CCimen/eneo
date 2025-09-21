@@ -48,13 +48,13 @@ def _load_image_generation_models():
             pathlib.Path(__file__).parent.parent.parent,
             "server", "dependencies", "ai_models.yml"
         )
-        logger.debug(f"[Image Tool] Loading models from config path: {config_path}")
+        logger.debug(f"Loading models from config path: {config_path}")
 
         with open(config_path, "r") as file:
             data = yaml.safe_load(file)
 
         image_models = data.get("image_generation_models", [])
-        logger.debug(f"[Image Tool] Found {len(image_models)} image generation models in config")
+        logger.debug(f"Found {len(image_models)} image generation models in config")
 
         # Create lookup by litellm_model_name for easy access
         models_config = {}
@@ -63,21 +63,21 @@ def _load_image_generation_models():
                 model_name = model.get("litellm_model_name")
                 if model_name:
                     models_config[model_name] = model
-                    logger.debug(f"[Image Tool] Loaded model: {model_name} ({model.get('nickname', 'Unknown')})")
+                    logger.debug(f"Loaded model: {model_name} ({model.get('nickname', 'Unknown')})")
                 else:
-                    logger.warning(f"[Image Tool] Model missing litellm_model_name: {model}")
+                    logger.warning(f"Model missing litellm_model_name: {model}")
 
-        logger.info(f"[Image Tool] Successfully loaded {len(models_config)} active image generation models")
+        logger.debug(f"Successfully loaded {len(models_config)} active image generation models")
         return models_config
 
     except FileNotFoundError as e:
-        logger.error(f"[Image Tool] Config file not found: {config_path}")
+        logger.error(f"Config file not found: {config_path}")
         return {}
     except yaml.YAMLError as e:
-        logger.error(f"[Image Tool] YAML parsing error in config file: {e}")
+        logger.error(f"YAML parsing error in config file: {e}")
         return {}
     except Exception as e:
-        logger.error(f"[Image Tool] Unexpected error loading image models: {e}")
+        logger.error(f"Unexpected error loading image models: {e}")
         return {}
 
 
@@ -90,19 +90,19 @@ def _get_default_image_model() -> str:
         return list(models_config.keys())[0]
 
     # Fallback to hardcoded Azure model
-    logger.warning("[Image Tool] No image models found in config, using fallback")
+    logger.warning("No image models found in config, using fallback")
     return "azure/gpt-image-1"
 
 
 def _get_model_params(model_name: str, **overrides):
     """Get generation parameters for a model, with optional overrides"""
-    logger.debug(f"[Image Tool] Getting parameters for model: {model_name}, overrides: {overrides}")
+    logger.debug(f"Getting parameters for model: {model_name}, overrides: {overrides}")
 
     models_config = _load_image_generation_models()
     model_config = models_config.get(model_name, {})
 
     if not model_config:
-        logger.warning(f"[Image Tool] Model '{model_name}' not found in config, using defaults")
+        logger.warning(f"Model '{model_name}' not found in config, using defaults")
 
     # Get default parameters from model config
     default_params = model_config.get("default_params", {
@@ -111,7 +111,7 @@ def _get_model_params(model_name: str, **overrides):
         "format": "png",
         "n": 1
     })
-    logger.debug(f"[Image Tool] Default params for {model_name}: {default_params}")
+    logger.debug(f"Default params for {model_name}: {default_params}")
 
     # Override with provided parameters, only if they're not None
     params = default_params.copy()
@@ -121,39 +121,39 @@ def _get_model_params(model_name: str, **overrides):
     # Validate parameters against model capabilities
     capabilities = model_config.get("capabilities", {})
     if capabilities:
-        logger.debug(f"[Image Tool] Validating params against capabilities: {capabilities}")
+        logger.debug(f"Validating params against capabilities: {capabilities}")
 
         # Validate size
         if "sizes" in capabilities and params["size"] not in capabilities["sizes"]:
-            logger.warning(f"[Image Tool] Size '{params['size']}' not supported by {model_name}, "
+            logger.warning(f"Size '{params['size']}' not supported by {model_name}, "
                           f"supported sizes: {capabilities['sizes']}")
 
         # Validate quality
         if "qualities" in capabilities and params["quality"] not in capabilities["qualities"]:
-            logger.warning(f"[Image Tool] Quality '{params['quality']}' not supported by {model_name}, "
+            logger.warning(f"Quality '{params['quality']}' not supported by {model_name}, "
                           f"supported qualities: {capabilities['qualities']}")
 
         # Validate number of images
         max_images = capabilities.get("max_images", 1)
         if params["n"] > max_images:
-            logger.warning(f"[Image Tool] Requested {params['n']} images but {model_name} "
+            logger.warning(f"Requested {params['n']} images but {model_name} "
                           f"supports max {max_images}, capping to {max_images}")
             params["n"] = max_images
 
     # Filter out unsupported parameters for specific models
     if model_name.startswith("gemini/"):
         # Gemini only supports: prompt, model, n, size (no quality, format)
-        logger.debug(f"[Image Tool] Filtering parameters for Gemini model")
+        logger.debug("Filtering parameters for Gemini model")
         filtered_params = {
             "size": params["size"],
             "n": params["n"]
         }
         # Only include quality and format if they're not in overrides (i.e., defaults)
         # This way we don't pass unsupported params to LiteLLM
-        logger.debug(f"[Image Tool] Gemini filtered parameters: {filtered_params}")
+        logger.debug(f"Gemini filtered parameters: {filtered_params}")
         return filtered_params
 
-    logger.debug(f"[Image Tool] Final parameters: {params}")
+    logger.debug(f"Final parameters: {params}")
     return params
 
 
@@ -177,28 +177,26 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
     # Input validation and logging
     if not prompt or not prompt.strip():
         error_msg = "Image generation prompt cannot be empty"
-        logger.error(f"[Image Tool] {error_msg}")
+        logger.error(error_msg)
         raise ValueError(error_msg)
 
-    logger.info(f"[Image Tool] Starting image generation")
-    logger.debug(f"[Image Tool] Input parameters - prompt: '{prompt[:100]}...', "
-                f"model: {model}, size: {size}, quality: {quality}, kwargs: {kwargs}")
+    logger.debug(f"Starting image generation with prompt length: {len(prompt) if prompt else 0}")
 
     try:
         # Load model from configuration if not specified
         if model is None:
             model = _get_default_image_model()
-            logger.debug(f"[Image Tool] Using default model: {model}")
+            logger.debug(f"Using default model: {model}")
 
         if not model:
             error_msg = "No image generation model available"
-            logger.error(f"[Image Tool] {error_msg}")
+            logger.error(error_msg)
             raise ValueError(error_msg)
 
-        logger.info(f"[Image Tool] Selected model: {model}")
+        logger.debug(f"Selected model: {model}")
 
         # Get model parameters with overrides
-        logger.debug(f"[Image Tool] Resolving parameters for model: {model}")
+        logger.debug(f"Resolving parameters for model: {model}")
         params = _get_model_params(
             model,
             size=size,
@@ -224,8 +222,7 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
         if "n" in params:
             litellm_params["n"] = params["n"]
 
-        logger.info(f"[Image Tool] Calling LiteLLM image_generation with model: {model}")
-        logger.debug(f"[Image Tool] LiteLLM parameters: {litellm_params}")
+        logger.debug(f"Calling LiteLLM image_generation with model: {model}")
 
         # Call LiteLLM
         response = litellm.image_generation(**litellm_params)
@@ -233,54 +230,52 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
         # Validate response
         if not hasattr(response, 'data') or not response.data:
             error_msg = f"Invalid response from LiteLLM: no data field. Response: {response}"
-            logger.error(f"[Image Tool] {error_msg}")
+            logger.error(error_msg)
             raise ValueError("No image data received from model")
 
         if len(response.data) == 0:
             error_msg = "Empty image data array received from model"
-            logger.error(f"[Image Tool] {error_msg}")
+            logger.error(error_msg)
             raise ValueError(error_msg)
 
         # Extract base64 data
         first_image = response.data[0]
         if not hasattr(first_image, 'b64_json') or not first_image.b64_json:
             error_msg = f"No b64_json data in response. First image object: {first_image}"
-            logger.error(f"[Image Tool] {error_msg}")
+            logger.error(error_msg)
             raise ValueError("No base64 image data in response")
 
         base64_string = first_image.b64_json
-        logger.debug(f"[Image Tool] Received base64 data length: {len(base64_string)}")
+        logger.debug(f"Received base64 data length: {len(base64_string)}")
 
         # Convert base64 to bytes
         try:
             image_bytes = base64.b64decode(base64_string)
         except Exception as decode_error:
             error_msg = f"Failed to decode base64 image data: {decode_error}"
-            logger.error(f"[Image Tool] {error_msg}")
+            logger.error(error_msg)
             raise ValueError(f"Base64 decode error: {decode_error}")
 
         # Success logging
         quality_info = f", Quality: {params['quality']}" if 'quality' in params else ""
         size_info = f", Dimensions: {params['size']}" if 'size' in params else ""
-        logger.info(f"[Image Tool] Image generation successful! "
-                   f"Model: {model}, Size: {len(image_bytes)} bytes"
-                   f"{size_info}{quality_info}")
+        logger.debug(f"Image generation successful - Model: {model}, Size: {len(image_bytes)} bytes")
 
         return image_bytes
 
     except litellm.AuthenticationError as e:
         error_msg = f"Authentication failed for model {model}: {e}"
-        logger.error(f"[Image Tool] {error_msg}")
+        logger.error(error_msg)
         raise ValueError(f"Authentication error: Check API keys for {model}")
 
     except litellm.RateLimitError as e:
         error_msg = f"Rate limit exceeded for model {model}: {e}"
-        logger.error(f"[Image Tool] {error_msg}")
+        logger.error(error_msg)
         raise ValueError(f"Rate limit exceeded for {model}. Please try again later.")
 
     except litellm.BadRequestError as e:
         error_msg = f"Bad request for model {model}: {e}"
-        logger.error(f"[Image Tool] {error_msg}")
+        logger.error(error_msg)
         raise ValueError(f"Invalid request: {e}")
 
     except ValueError:
@@ -289,8 +284,8 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
 
     except Exception as e:
         error_msg = f"Unexpected error during image generation with {model}: {type(e).__name__}: {e}"
-        logger.error(f"[Image Tool] {error_msg}")
-        logger.debug(f"[Image Tool] Full error details:", exc_info=True)
+        logger.error(error_msg)
+        logger.debug("Full error details:", exc_info=True)
         raise ValueError(f"Image generation failed: {e}")
 
 

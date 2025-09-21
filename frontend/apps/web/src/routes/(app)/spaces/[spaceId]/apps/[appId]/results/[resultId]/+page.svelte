@@ -20,6 +20,7 @@
   import { getAttachmentUrlService } from "$lib/features/attachments/AttachmentUrlService.svelte.js";
   import { getIntric } from "$lib/core/Intric.js";
   import { browser } from "$app/environment";
+  import AsyncImage from "$lib/components/AsyncImage.svelte";
   dayjs.extend(utc);
 
   const { data } = $props();
@@ -123,7 +124,15 @@
 </svelte:head>
 
 {#snippet formattedResult()}
-  {#if result.output}
+  {#if result.output_type === "image" && result.output_image}
+    {@const imageUrl = attachmentUrlService.getUrl(result.output_image)}
+    <div class="flex flex-col items-center gap-4">
+      <AsyncImage url={imageUrl} fixedAspectRatio={false} />
+      {#if result.output}
+        <p class="text-secondary text-sm italic">Prompt: {result.output}</p>
+      {/if}
+    </div>
+  {:else if result.output}
     {@render downloadButtons("output", result.output)}
     <Markdown source={result.output}></Markdown>
   {:else}
@@ -227,7 +236,7 @@
                   {/each}
                 </div>
               </Tab>
-            {:else if result.output}
+            {:else if result.output || (result.output_type === "image" && result.output_image)}
               {@render formattedResult()}
               <!-- Need to check for browser as we make a fetch request in the await -->
             {:else if browser && result.status === "failed" && result.input.files.length > 0}

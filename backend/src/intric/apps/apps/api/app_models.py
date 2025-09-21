@@ -8,6 +8,9 @@ from intric.ai_models.completion_models.completion_model import (
     ModelKwargs,
 )
 from intric.files.file_models import FilePublic, FileRestrictions
+from intric.image_generation_models.presentation.image_generation_model_sparse import (
+    ImageGenerationModelSparse,
+)
 from intric.main.models import NOT_PROVIDED, InDB, ModelId, NotProvided, ResourcePermissionsMixin
 from intric.prompts.api.prompt_models import PromptCreate, PromptPublic
 from intric.transcription_models.presentation import TranscriptionModelPublic
@@ -23,6 +26,11 @@ class InputFieldType(str, Enum):
     @classmethod
     def contains_input_type(cls, input_type: str) -> bool:
         return input_type in cls._value2member_map_
+
+
+class OutputType(str, Enum):
+    TEXT = "text"
+    IMAGE = "image"
 
 
 class InputField(BaseModel):
@@ -54,6 +62,8 @@ class AppPublic(AppCreateRequest, InDB, ResourcePermissionsMixin):
     published: bool
     transcription_model: TranscriptionModelPublic
     data_retention_days: Optional[int] = None
+    output_type: OutputType = OutputType.TEXT
+    image_generation_model: Optional[ImageGenerationModelSparse] = None
 
 
 class AppUpdateRequest(BaseModel):
@@ -66,3 +76,5 @@ class AppUpdateRequest(BaseModel):
     completion_model_kwargs: Optional[ModelKwargs] = None
     transcription_model: Optional[ModelId] = None
     data_retention_days: Union[int, None, NotProvided] = NOT_PROVIDED
+    output_type: Optional[OutputType] = None
+    image_generation_model: Optional[ModelId] = None

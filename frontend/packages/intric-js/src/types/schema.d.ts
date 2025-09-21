@@ -1279,6 +1279,9 @@ export interface components {
       transcription_model: components["schemas"]["TranscriptionModelPublic"];
       /** Data Retention Days */
       data_retention_days?: number | null;
+      /** @default text */
+      output_type?: components["schemas"]["OutputType"];
+      image_generation_model?: components["schemas"]["ImageGenerationModelSparse"] | null;
     };
     /** AppRunInput */
     AppRunInput: {
@@ -1305,6 +1308,12 @@ export interface components {
       user: components["schemas"]["UserSparse"];
       /** Output */
       output: string | null;
+      /**
+       * Output Type
+       * @default text
+       */
+      output_type?: string;
+      output_image?: components["schemas"]["FilePublic"] | null;
     };
     /** AppRunSparse */
     AppRunSparse: {
@@ -1422,6 +1431,8 @@ export interface components {
        * @default NOT_PROVIDED
        */
       data_retention_days?: number | null;
+      output_type?: components["schemas"]["OutputType"] | null;
+      image_generation_model?: components["schemas"]["ModelId"] | null;
     };
     /** Applications */
     Applications: {
@@ -2986,6 +2997,38 @@ export interface components {
       /** Meets Security Classification */
       meets_security_classification?: boolean | null;
     };
+    /** ImageGenerationModelSparse */
+    ImageGenerationModelSparse: {
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Nickname */
+      nickname?: string | null;
+      /** Family */
+      family: string;
+      /** Org */
+      org?: string | null;
+      /** Is Deprecated */
+      is_deprecated: boolean;
+      /** Stability */
+      stability: string;
+      /** Hosting */
+      hosting: string;
+      /** Description */
+      description?: string | null;
+      /** Open Source */
+      open_source?: boolean | null;
+      /** Litellm Model Name */
+      litellm_model_name?: string | null;
+    };
     /**
      * ImageGenerationModelUpdate
      * @description Model for updating image generation model settings (following completion model pattern)
@@ -3535,6 +3578,11 @@ export interface components {
       /** Nonce */
       nonce?: string | null;
     };
+    /**
+     * OutputType
+     * @enum {string}
+     */
+    OutputType: "text" | "image";
     /** PaginatedPermissions[AppSparse] */
     PaginatedPermissions_AppSparse_: {
       /**

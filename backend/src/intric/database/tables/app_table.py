@@ -5,7 +5,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from intric.database.tables.ai_models_table import CompletionModels, TranscriptionModels
+from intric.database.tables.ai_models_table import CompletionModels, ImageGenerationModels, TranscriptionModels
 from intric.database.tables.app_template_table import AppTemplates
 from intric.database.tables.base_class import BaseCrossReference, BasePublic
 from intric.database.tables.files_table import Files
@@ -22,6 +22,7 @@ class Apps(BasePublic):
     completion_model_kwargs: Mapped[Optional[dict]] = mapped_column(JSONB)
     published: Mapped[bool] = mapped_column()
     data_retention_days: Mapped[Optional[int]] = mapped_column()
+    output_type: Mapped[str] = mapped_column(default="text")  # "text" or "image"
 
     # Foreign keys
     tenant_id: Mapped[UUID] = mapped_column(ForeignKey(Tenants.id, ondelete="CASCADE"))
@@ -36,10 +37,14 @@ class Apps(BasePublic):
     transcription_model_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey(TranscriptionModels.id, ondelete="SET NULL")
     )
+    image_generation_model_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey(ImageGenerationModels.id, ondelete="SET NULL")
+    )
 
     # Relationships
     completion_model: Mapped[CompletionModels] = relationship()
     transcription_model: Mapped[Optional[TranscriptionModels]] = relationship()
+    image_generation_model: Mapped[Optional[ImageGenerationModels]] = relationship()
     input_fields: Mapped[list["InputFields"]] = relationship(
         order_by="InputFields.created_at", viewonly=True
     )
@@ -52,6 +57,10 @@ class Apps(BasePublic):
 class AppRuns(BasePublic):
     input_text: Mapped[Optional[str]] = mapped_column()
     output_text: Mapped[Optional[str]] = mapped_column()
+    output_type: Mapped[str] = mapped_column(default="text")  # "text" or "image"
+    output_image_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey(Files.id, ondelete="SET NULL")
+    )
     num_tokens_input: Mapped[Optional[int]] = mapped_column()
     num_tokens_output: Mapped[Optional[int]] = mapped_column()
 
@@ -70,6 +79,7 @@ class AppRuns(BasePublic):
     input_files: Mapped[list["AppRunsFiles"]] = relationship(viewonly=True)
     user: Mapped[Users] = relationship()
     job: Mapped[Jobs] = relationship()
+    output_image: Mapped[Optional[Files]] = relationship()
 
 
 class InputFields(BasePublic):

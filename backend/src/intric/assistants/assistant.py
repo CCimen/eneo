@@ -333,14 +333,15 @@ class Assistant(Entity):
             version=version,
         )
 
-        logger.info(f"[Assistant] Image generation requested: {image_generation}")
+        logger.debug(f"Image generation requested: {image_generation}")
 
         # Handle image generation separately
         if image_generation:
             if not image_generation_service:
+                logger.error("Image generation service not available")
                 raise BadRequestException("Image generation service not available")
 
-            logger.info(f"[Assistant] Routing to image generation service for space: {self.space_id}")
+            logger.debug(f"Routing to image generation service for space: {self.space_id}")
 
             try:
                 # Note: Space context should be passed from the assistant service
@@ -369,12 +370,15 @@ class Assistant(Entity):
                     total_token_count=0
                 )
 
-                logger.info(f"[Assistant] Image generation completed successfully")
+                logger.debug("Image generation completed successfully")
                 return response, datastore_result
 
+            except BadRequestException:
+                # Re-raise BadRequestException as is
+                raise
             except Exception as e:
-                logger.error(f"[Assistant] Image generation failed: {e}")
-                raise BadRequestException(f"Image generation failed: {e}")
+                logger.error(f"Image generation failed: {str(e)}")
+                raise BadRequestException(f"Image generation failed: {str(e)}")
 
         # Handle normal text completion
         logger.info(f"[Assistant] Using completion model: {self.completion_model.name}")

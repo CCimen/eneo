@@ -46,18 +46,18 @@ class ImageGenerationService:
         """
         if space.is_personal():
             # Personal spaces don't have image generation model restrictions
-            logger.debug(f"[Image Generation Service] Personal space - skipping space permission check")
+            logger.debug("Personal space - skipping space permission check")
             return
 
         # Check if the model is enabled in the space using the same pattern as other models
         if not space.is_image_generation_model_in_space(model.id):
-            logger.error(f"[Image Generation Service] Image generation model {model.name} is not enabled in space {space.name}")
+            logger.error(f"Image generation model {model.name} is not enabled in space {space.name}")
             raise BadRequestException(
                 f"Image generation model '{model.nickname or model.name}' is not enabled in this space. "
                 f"Please enable it in space settings or contact your administrator."
             )
 
-        logger.debug(f"[Image Generation Service] Space permission check passed for model {model.name} in space {space.name}")
+        logger.debug(f"Space permission check passed for model {model.name}")
 
     async def generate_image(
         self,
@@ -82,26 +82,33 @@ class ImageGenerationService:
         Returns:
             Image bytes
         """
-        logger.info(f"[Image Generation Service] Starting image generation")
-        logger.debug(f"[Image Generation Service] Prompt: '{prompt[:100]}...', model_id: {model_id}, space: {space.name if space else 'None'}")
+        logger.debug(f"Starting image generation, model_id: {model_id}")
 
         # Get the model to use
-        if model_id:
-            # Use specific model
-            model = await self.image_generation_repo.one(model_id)
-            if not model.is_org_enabled:
-                raise BadRequestException(f"Image generation model {model_id} is not enabled")
-        else:
-            # Use default model
-            model = await self.get_default_model()
-            if not model:
-                raise BadRequestException("No image generation models enabled")
+        try:
+            if model_id:
+                # Use specific model
+                model = await self.image_generation_repo.one(model_id)
+                if not model.is_org_enabled:
+                    logger.error(f"Image generation model {model_id} is not enabled")
+                    raise BadRequestException(f"Image generation model {model_id} is not enabled")
+            else:
+                # Use default model
+                model = await self.get_default_model()
+                if not model:
+                    logger.error("No image generation models enabled")
+                    raise BadRequestException("No image generation models enabled")
+        except BadRequestException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to retrieve image generation model: {str(e)}")
+            raise BadRequestException(f"Failed to retrieve image generation model: {str(e)}")
 
         # Check space permissions if space is provided
         if space:
             self.check_space_permissions(space, model)
 
-        logger.info(f"[Image Generation Service] Using model: {model.name} ({model.litellm_model_name})")
+        logger.debug(f"Using model: {model.name} ({model.litellm_model_name})")
 
         # Call the LiteLLM generate_image function directly
         try:
@@ -113,7 +120,7 @@ class ImageGenerationService:
                 **kwargs
             )
 
-            logger.info(f"[Image Generation Service] Image generation successful! Size: {len(image_bytes)} bytes")
+            logger.debug(f"Image generation successful, size: {len(image_bytes)} bytes")
             return image_bytes
 
         except Exception as e:

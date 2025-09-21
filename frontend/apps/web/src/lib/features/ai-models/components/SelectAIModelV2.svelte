@@ -1,5 +1,5 @@
-<script lang="ts" generics="T extends TranscriptionModel | CompletionModel">
-  import type { CompletionModel, TranscriptionModel } from "@intric/intric-js";
+<script lang="ts" generics="T extends TranscriptionModel | CompletionModel | ImageGenerationModel">
+  import type { CompletionModel, TranscriptionModel, ImageGenerationModel } from "@intric/intric-js";
   import ModelNameAndVendor from "./ModelNameAndVendor.svelte";
   import { sortModels } from "../sortModels";
   import { createSelect } from "@melt-ui/svelte";
@@ -72,7 +72,7 @@
   <div
     class="bg-frosted-glass-secondary border-default sticky top-0 border-b px-4 py-2 font-mono text-sm"
   >
-    Select a completion model
+    Select a model
   </div>
   {#each availableModels as model (model.id)}
     <div

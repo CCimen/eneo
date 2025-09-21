@@ -1,6 +1,6 @@
-import type { CompletionModel, EmbeddingModel, TranscriptionModel } from "@intric/intric-js";
+import type { CompletionModel, EmbeddingModel, TranscriptionModel, ImageGenerationModel } from "@intric/intric-js";
 
-type Model = (CompletionModel | EmbeddingModel | TranscriptionModel) & { nickname?: string | null };
+type Model = (CompletionModel | EmbeddingModel | TranscriptionModel | ImageGenerationModel) & { nickname?: string | null };
 
 function sortModel(a: Model, b: Model) {
   if (a.org === b.org) {
@@ -9,7 +9,7 @@ function sortModel(a: Model, b: Model) {
   return (a.org ?? "a") > (b.org ?? "b") ? 1 : -1;
 }
 
-/** Will sort an array of `CompletionModel`or `EmbeddingModel`. ATTENTION: sorts in place! */
+/** Will sort an array of AI models. ATTENTION: sorts in place! */
 export function sortModels(models: Model[]) {
   models.sort(sortModel);
   return models;

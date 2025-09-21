@@ -99,13 +99,32 @@ class AppRunService:
 
         response = await self.app_service.run_app(app_id, file_ids=file_ids, text=text)
 
-        # Count the output tokens
-        total_output_tokens = count_tokens(response.completion.text)
+        # Handle different response types (text vs image)
+        if isinstance(response, dict) and response.get("type") == "image":
+            # For image generation, save the image as a file
+            image_bytes = response["image_bytes"]
 
-        app_run.update(
-            output=response.completion.text,
-            num_tokens_input=response.total_token_count,
-            num_tokens_output=total_output_tokens,
-        )
+            # Create a file entry for the generated image (using defaults like assistant chat)
+            image_file = await self.file_service.save_image_from_bytes(
+                image_data=image_bytes
+            )
+
+            app_run.update(
+                output=None,  # No text output for images
+                output_type="image",
+                output_image_id=image_file.id,
+                num_tokens_input=0,  # No token counting for images
+                num_tokens_output=0,
+            )
+        else:
+            # Traditional text completion
+            total_output_tokens = count_tokens(response.completion.text)
+
+            app_run.update(
+                output=response.completion.text,
+                output_type="text",
+                num_tokens_input=response.total_token_count,
+                num_tokens_output=total_output_tokens,
+            )
 
         await self.repo.update(app_run)

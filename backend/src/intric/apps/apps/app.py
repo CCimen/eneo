@@ -6,7 +6,7 @@ from intric.ai_models.completion_models.completion_model import (
     CompletionModelSparse,
     ModelKwargs,
 )
-from intric.apps.apps.api.app_models import InputField, InputFieldType
+from intric.apps.apps.api.app_models import InputField, InputFieldType, OutputType
 from intric.completion_models.infrastructure.completion_service import CompletionService
 from intric.files.audio import AudioMimeTypes
 from intric.files.file_models import File, FileInfo
@@ -21,6 +21,9 @@ from intric.templates.app_template.app_template import AppTemplate
 
 if TYPE_CHECKING:
     from intric.completion_models.domain import CompletionModel
+    from intric.image_generation_models.domain.image_generation_model import (
+        ImageGenerationModel,
+    )
     from intric.transcription_models.domain.transcription_model import (
         TranscriptionModel,
     )
@@ -71,6 +74,8 @@ class App:
         published: bool,
         source_template: AppTemplate | None = None,
         data_retention_days: Optional[int] = None,
+        output_type: OutputType = OutputType.TEXT,
+        image_generation_model: Optional["ImageGenerationModel"] = None,
     ):
         self._input_fields = input_fields
         self._attachments = attachments
@@ -90,6 +95,8 @@ class App:
         self.source_template = source_template
         self.transcription_model = transcription_model
         self.data_retention_days = data_retention_days
+        self.output_type = output_type
+        self.image_generation_model = image_generation_model
 
     def _input_field_types(self):
         return [input_field.type for input_field in self.input_fields]
@@ -167,6 +174,8 @@ class App:
         published: bool | None = None,
         transcription_model: "TranscriptionModel" = None,
         data_retention_days: Union[int, None, NotProvided] = NOT_PROVIDED,
+        output_type: OutputType | None = None,
+        image_generation_model: Optional["ImageGenerationModel"] = None,
     ):
         if name is not None:
             self.name = name
@@ -188,6 +197,12 @@ class App:
 
         if input_fields is not None:
             self.input_fields = input_fields
+
+        if output_type is not None:
+            self.output_type = output_type
+
+        if image_generation_model is not None:
+            self.image_generation_model = image_generation_model
 
         if attachments is not None:
             self.attachments = attachments
@@ -245,10 +260,74 @@ class App:
         text: str | None,
         completion_service: CompletionService,
         transcriber: Transcriber,
+        image_generation_service=None,  # Injected when needed
     ):
         if text is None:
             text = ""
 
+        # If output type is IMAGE, generate an image instead of text completion
+        if self.output_type == OutputType.IMAGE:
+            if not image_generation_service:
+                logger.error("[App] Image generation service not available")
+                raise BadRequestException("Image generation service not available")
+
+            if not self.image_generation_model:
+                logger.error(f"[App] No image generation model configured for app {self.id}")
+                raise BadRequestException("No image generation model configured for this app")
+
+            # Build the image generation prompt from app prompt and user input
+            prompt_parts = []
+
+            # First add any app-level prompt instructions
+            if self._get_prompt_text():
+                prompt_parts.append(self._get_prompt_text())
+
+            # Add user text input
+            if text:
+                prompt_parts.append(text)
+
+            # For files, extract text content to add to the prompt
+            text_files = [file for file in files if TextMimeTypes.has_value(file.mimetype)]
+            for file in text_files:
+                if hasattr(file, 'text') and file.text:
+                    prompt_parts.append(file.text)
+
+            # Combine all parts into a cohesive prompt
+            if len(prompt_parts) > 0:
+                # Join the parts with space instead of newlines
+                final_prompt = " ".join(prompt_parts)
+            else:
+                final_prompt = ""
+
+            if not final_prompt.strip():
+                logger.error(f"Empty prompt for image generation in app {self.id}")
+                raise BadRequestException("No prompt provided for image generation")
+
+            logger.debug(f"Generating image for app {self.id}, prompt length: {len(final_prompt)}")
+            logger.debug(f"Using model: {self.image_generation_model.name}")
+
+            try:
+                # Generate the image
+                image_bytes = await image_generation_service.generate_image(
+                    prompt=final_prompt,
+                    model_id=self.image_generation_model.id,
+                )
+
+                logger.debug(f"Image generated successfully for app {self.id}, size: {len(image_bytes)} bytes")
+
+                # Return a special response format for image generation
+                return {
+                    "type": "image",
+                    "image_bytes": image_bytes,
+                    "prompt": final_prompt,
+                }
+
+            except Exception as e:
+                logger.error(f"[App] Image generation failed for app {self.id}: {str(e)}")
+                logger.debug(f"[App] Image generation error details - App: {self.name}, Model: {self.image_generation_model.name}, Prompt length: {len(final_prompt)}")
+                raise BadRequestException(f"Image generation failed: {str(e)}")
+
+        # Otherwise, use existing text completion logic
         audio_files = [file for file in files if AudioMimeTypes.has_value(file.mimetype)]
 
         transcriptions = [

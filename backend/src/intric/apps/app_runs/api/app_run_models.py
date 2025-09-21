@@ -28,6 +28,8 @@ class AppRunSparse(InDB):
 
 class AppRunPublic(AppRunSparse):
     output: str | None
+    output_type: str = "text"
+    output_image: FilePublic | None = None
 
 
 class AppRunParams(ResourceTaskParams):
