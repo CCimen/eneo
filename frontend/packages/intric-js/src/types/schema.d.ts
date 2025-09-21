@@ -1470,6 +1470,13 @@ export interface components {
        */
       stream?: boolean;
       tools?: components["schemas"]["UseTools"] | null;
+      /**
+       * Image Generation
+       * @default false
+       */
+      image_generation?: boolean;
+      /** @description Advanced image generation parameters. If provided, image_generation is automatically set to True. */
+      image_generation_params?: components["schemas"]["ImageGenerationParams"] | null;
     };
     /** AskResponse */
     AskResponse: {

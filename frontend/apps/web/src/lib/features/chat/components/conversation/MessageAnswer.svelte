@@ -52,8 +52,14 @@
 
 {#each message.generated_files as file (file.id)}
   {@const url = attachmentUrls.getUrl(file) ?? null}
-  <div class="debug-generated-file">
-    <p class="text-sm text-gray-500">File: {file.name}, URL: {url ? 'present' : 'null'}</p>
-    <AsyncImage {url}></AsyncImage>
-  </div>
+  {#if url}
+    <AsyncImage
+      {url}
+      metadata={{
+        size: file.metadata?.size || "",
+        prompt: message.question?.substring(0, 200),
+        fileSize: file.size || 0
+      }}
+    />
+  {/if}
 {/each}

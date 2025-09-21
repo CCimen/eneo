@@ -103,7 +103,8 @@ export function initConversations(client) {
       useWebSearch,
       abortController,
       callbacks,
-      image_generation
+      image_generation,
+      image_generation_params
     }) => {
       /**  @type { {session_id?: string, assistant_id?: string, group_chat_id?: string}} */
       const target = { session_id: undefined, assistant_id: undefined, group_chat_id: undefined };
@@ -139,8 +140,9 @@ export function initConversations(client) {
               tools,
               stream: true,
               use_web_search: useWebSearch,
-              // Simple image generation flag
-              image_generation: image_generation || false
+              // Image generation configuration
+              image_generation: image_generation || false,
+              image_generation_params: image_generation_params || undefined
             }
           }
         },

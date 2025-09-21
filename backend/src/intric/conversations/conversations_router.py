@@ -100,6 +100,7 @@ async def chat(
         version=version,
         use_web_search=request.use_web_search,
         image_generation=request.image_generation,  # Simple flag for logging
+        image_generation_params=request.image_generation_params,  # Pass the params
     )
 
     return await to_conversation_response(

@@ -127,7 +127,7 @@
   {#if result.output_type === "image" && result.output_image}
     {@const imageUrl = attachmentUrlService.getUrl(result.output_image)}
     <div class="flex flex-col items-center gap-4">
-      <AsyncImage url={imageUrl} fixedAspectRatio={false} />
+      <AsyncImage url={imageUrl} />
       {#if result.output}
         <p class="text-secondary text-sm italic">Prompt: {result.output}</p>
       {/if}

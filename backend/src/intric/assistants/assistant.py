@@ -350,6 +350,7 @@ class Assistant(Entity):
                 # Supports both explicit API parameters and defaults
                 kwargs = {}
                 if image_generation_params:
+                    logger.debug(f"[Assistant] Image generation params received: size={image_generation_params.size}, quality={image_generation_params.quality}")
                     if image_generation_params.size:
                         kwargs["size"] = image_generation_params.size
                     if image_generation_params.quality:
@@ -357,8 +358,11 @@ class Assistant(Entity):
                     if image_generation_params.n:
                         kwargs["n"] = image_generation_params.n
                     # Note: model selection handled at service level
+                else:
+                    logger.debug("[Assistant] No image generation params provided, using defaults")
 
                 # Generate image with parameters
+                logger.debug(f"[Assistant] Calling generate_image with kwargs: {kwargs}")
                 image_bytes = await image_generation_service.generate_image(
                     prompt=question,
                     **kwargs

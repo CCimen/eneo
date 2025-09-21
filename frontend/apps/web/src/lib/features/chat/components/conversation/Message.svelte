@@ -57,15 +57,21 @@
   });
 
   const showSpinner = $derived.by(() => {
-    const isGeneratingImage = message.generated_files.length > 0;
-    return isLast && isLoading && !isGeneratingImage;
+    return isLast && isLoading;
+  });
+
+  const isGeneratingImage = $derived.by(() => {
+    // Image generation is happening if we're loading but have no answer yet and no files
+    const noAnswerYet = message.answer.trim() === "";
+    const hasGeneratedFiles = message.generated_files.length > 0;
+    return isLast && isLoading && noAnswerYet && !hasGeneratedFiles;
   });
 
   const isReasoning = $derived.by(() => {
     const modelCanReason =
       "completion_model" in chat.partner && chat.partner.completion_model?.reasoning;
     const noAnswerReceived = message.answer.trim() === "";
-    return modelCanReason && noAnswerReceived;
+    return modelCanReason && noAnswerReceived && !isGeneratingImage;
   });
 </script>
 
@@ -82,7 +88,12 @@
   {#if showSpinner}
     <div class="flex items-center gap-2">
       <IconLoadingSpinner class="animate-spin" />
-      {#if isReasoning}
+      {#if isGeneratingImage}
+        <span
+          class="bg-accent-dimmer text-accent-stronger w-fit animate-pulse rounded-full px-4 py-2"
+          >Generating image...</span
+        >
+      {:else if isReasoning}
         <span
           class="bg-accent-dimmer text-accent-stronger w-fit animate-pulse rounded-full px-4 py-2"
           >Thinking...</span

@@ -3,7 +3,8 @@
   import { IconEnter } from "@intric/icons/enter";
   import { IconStopCircle } from "@intric/icons/stop-circle";
   import { IconFileImage } from "@intric/icons/file-image";
-  import { Button, Input, Tooltip } from "@intric/ui";
+  import { Button, Input, Dropdown, Tooltip } from "@intric/ui";
+  import { IconCheck } from "@intric/icons/check";
   import { getAttachmentManager } from "$lib/features/attachments/AttachmentManager";
   import MentionInput from "../mentions/MentionInput.svelte";
   import { initMentionInput } from "../mentions/MentionInput";
@@ -61,8 +62,12 @@
           }
         : undefined;
 
-    console.log('[Chat Input] Sending message with image mode:', isImageMode);
-    console.log('[Chat Input] Question:', $question);
+    if (isImageMode) {
+      console.log('[Chat Input] Image generation enabled', {
+        size: imageSize,
+        question: $question.substring(0, 100) + '...'
+      });
+    }
 
     chat.askQuestion(
       $question,
@@ -71,11 +76,12 @@
       webSearchEnabled,
       abortController,
       {
-        imageGeneration: isImageMode
+        imageGeneration: isImageMode,
+        imageSize: isImageMode ? imageSize : undefined
       }
-    );
-
-    console.log('[Chat Input] Message sent, resetting input');
+    ).catch(error => {
+      console.error('[Chat Input] Failed to send message:', error);
+    });
 
     scrollToBottom();
     resetMentionInput();
@@ -93,6 +99,17 @@
 
   let useWebSearch = $state(false);
   let isImageMode = $state(false);
+  let imageSize = $state<string>("1024x1024");
+
+  const imageSizeOptions = [
+    { value: "1024x1024", label: "Square", shortLabel: "1:1", description: "1024×1024" },
+    { value: "1024x1792", label: "Portrait", shortLabel: "9:16", description: "1024×1792" },
+    { value: "1792x1024", label: "Landscape", shortLabel: "16:9", description: "1792×1024" }
+  ];
+
+  const currentSizeOption = $derived(
+    imageSizeOptions.find(opt => opt.value === imageSize) || imageSizeOptions[0]
+  );
 
   const shouldShowMentionButton = $derived.by(() => {
     const hasTools = chat.partner.tools.assistants.length > 0;
@@ -125,23 +142,72 @@
       {#if shouldShowMentionButton}
         <MentionButton></MentionButton>
       {/if}
-      <Tooltip text="Toggle image generation mode" placement="top" let:trigger asFragment>
-        <Button
-          unstyled
-          type="button"
-          aria-label="Toggle image generation mode"
-          is={trigger}
-          on:click={() => {
-            console.log('[Image Toggle] Toggling image mode from', isImageMode, 'to', !isImageMode);
-            isImageMode = !isImageMode;
-            console.log('[Image Toggle] Image mode is now:', isImageMode);
-            // TODO: Add keyboard shortcut (Ctrl+I) support
-          }}
-          class="hover:bg-accent-dimmer hover:text-accent-stronger border-default hover:border-accent-default {isImageMode ? 'bg-accent-dimmer text-accent-stronger border-accent-default' : ''} flex items-center justify-center rounded-full border p-1.5 transition-colors"
-        >
-          <IconFileImage />
-        </Button>
-      </Tooltip>
+      <Dropdown.Root>
+        <Dropdown.Trigger let:trigger asFragment>
+          <Button
+            unstyled
+            type="button"
+            aria-label={isImageMode ? "Configure image generation" : "Enable image generation"}
+            is={trigger}
+            on:click={() => {
+              if (!isImageMode) {
+                isImageMode = true;
+              }
+            }}
+            class="{isImageMode ? 'bg-accent-dimmer text-accent-stronger border-accent-default' : 'hover:bg-accent-dimmer hover:text-accent-stronger border-default hover:border-accent-default'} flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-sm transition-colors"
+            title={isImageMode ? `Image mode: ${currentSizeOption.description}` : "Enable image generation"}
+          >
+            <IconFileImage class="h-4 w-4" />
+            <span>Image</span>
+            {#if isImageMode}
+              <span class="text-xs font-semibold bg-accent-default text-on-fill px-1.5 py-0.5 rounded-full">
+                {currentSizeOption.shortLabel}
+              </span>
+            {/if}
+          </Button>
+        </Dropdown.Trigger>
+        <Dropdown.Menu let:item>
+          <div class="p-1.5">
+            <div class="text-xs text-secondary font-semibold uppercase tracking-wider px-2 py-1.5 mb-0.5">Select Size</div>
+            {#each imageSizeOptions as option}
+              <Button
+                is={item}
+                unstyled
+                on:click={() => {
+                  imageSize = option.value;
+                  isImageMode = true;
+                }}
+                class="flex items-center justify-between w-full px-2 py-2 rounded-md hover:bg-hover-dimmer text-sm transition-all {imageSize === option.value ? 'bg-accent-dimmer text-accent-stronger font-medium' : ''} group"
+              >
+                <span class="flex flex-col items-start gap-0.5">
+                  <span class="flex items-center gap-2">
+                    {option.label}
+                    <span class="text-xs text-secondary {imageSize === option.value ? 'text-accent-default' : ''}">{option.shortLabel}</span>
+                  </span>
+                  <span class="text-xs text-secondary">{option.description}</span>
+                </span>
+                {#if imageSize === option.value}
+                  <IconCheck class="h-4 w-4 text-accent-stronger flex-shrink-0" />
+                {/if}
+              </Button>
+            {/each}
+            {#if isImageMode}
+              <div class="border-t border-default mt-2 pt-2">
+                <Button
+                  is={item}
+                  unstyled
+                  on:click={() => {
+                    isImageMode = false;
+                  }}
+                  class="flex items-center w-full px-2 py-1.5 rounded-md hover:bg-hover-dimmer text-sm text-secondary transition-all"
+                >
+                  <span>Turn off image generation</span>
+                </Button>
+              </div>
+            {/if}
+          </div>
+        </Dropdown.Menu>
+      </Dropdown.Root>
       {#if chat.partner.type === "default-assistant" && featureFlags.showWebSearch}
         <div
           class="hover:bg-accent-dimmer hover:text-accent-stronger border-default hover:border-accent-default flex items-center justify-center rounded-full border p-1.5"

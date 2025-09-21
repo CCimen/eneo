@@ -223,6 +223,7 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
             litellm_params["n"] = params["n"]
 
         logger.debug(f"Calling LiteLLM image_generation with model: {model}")
+        logger.debug(f"LiteLLM parameters being sent: {litellm_params}")
 
         # Call LiteLLM
         response = litellm.image_generation(**litellm_params)
@@ -256,10 +257,21 @@ async def generate_image(prompt: str, model: str = None, size: str = None, quali
             logger.error(error_msg)
             raise ValueError(f"Base64 decode error: {decode_error}")
 
+        # Try to get actual image dimensions for debugging
+        actual_dimensions = "unknown"
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(image_bytes))
+            actual_dimensions = f"{img.width}x{img.height}"
+            logger.info(f"Actual image dimensions: {actual_dimensions}, Requested: {params.get('size', 'default')}")
+        except Exception as e:
+            logger.debug(f"Could not determine image dimensions: {e}")
+
         # Success logging
         quality_info = f", Quality: {params['quality']}" if 'quality' in params else ""
-        size_info = f", Dimensions: {params['size']}" if 'size' in params else ""
-        logger.debug(f"Image generation successful - Model: {model}, Size: {len(image_bytes)} bytes")
+        size_info = f", Requested: {params['size']}" if 'size' in params else ""
+        logger.debug(f"Image generation successful - Model: {model}, Size: {len(image_bytes)} bytes, Actual: {actual_dimensions}{size_info}")
 
         return image_bytes
 

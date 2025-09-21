@@ -13,6 +13,15 @@
   const {
     state: { currentSpace }
   } = getSpacesManager();
+
+  // When output type is image, ensure the model is a proper object, not just a string
+  $: if ($update.output_type === "image" && $currentSpace.image_generation_models?.length > 0) {
+    // Check if image_generation_model is not set, or is a string (not an object with an id)
+    if (!$update.image_generation_model || typeof $update.image_generation_model === 'string' || !$update.image_generation_model.id) {
+      // Set to first available image generation model
+      $update.image_generation_model = $currentSpace.image_generation_models[0];
+    }
+  }
 </script>
 
 <Settings.Row

@@ -8,6 +8,7 @@ from intric.completion_models.infrastructure.static_prompts import (
     SET_TITLE_OF_CONVERSATION_PROMPT,
 )
 from intric.sessions.session import SessionUpdate
+from intric.conversations.conversation_models import ImageGenerationParams
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -54,6 +55,7 @@ class ConversationService:
         version: int = 1,
         use_web_search: bool = False,
         image_generation: bool = False,  # Simple flag for logging only
+        image_generation_params: Optional[ImageGenerationParams] = None,
     ) -> "AskChatResponse":
         """
         Routes a conversation request to the appropriate service based on the parameters.
@@ -105,6 +107,7 @@ class ConversationService:
                     version=version,
                     use_web_search=use_web_search,
                     image_generation=image_generation,
+                    image_generation_params=image_generation_params,
                 )
 
         # case 2: starting a new conversation
@@ -136,6 +139,7 @@ class ConversationService:
                     version=version,
                     use_web_search=use_web_search,
                     image_generation=image_generation,
+                    image_generation_params=image_generation_params,
                 )
             else:
                 # should never happen due to model validation, but just to be safe

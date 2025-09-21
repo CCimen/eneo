@@ -143,6 +143,7 @@ export class ChatService {
       abortController?: AbortController,
       imageParams?: {
         imageGeneration: boolean;
+        imageSize?: string;
       }
     ) => {
       // Debug logging for image parameters
@@ -179,10 +180,18 @@ export class ChatService {
           useWebSearch,
         };
 
-        // Add simple image generation flag if provided
+        // Add image generation parameters if provided
         if (imageParams?.imageGeneration) {
           console.log('[ChatService] Image generation mode enabled');
           requestData.image_generation = true;
+
+          // Add advanced parameters if size is specified
+          if (imageParams.imageSize) {
+            requestData.image_generation_params = {
+              size: imageParams.imageSize
+            };
+            console.log('[ChatService] Using image generation params:', requestData.image_generation_params);
+          }
         }
 
         console.log('[ChatService] Calling intric.conversations.ask with:', {

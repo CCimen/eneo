@@ -37,7 +37,7 @@
     {#each files as file (file.id)}
       {#if file.type === "image"}
         <div class="ml-12 overflow-clip rounded-lg border shadow-md">
-          <AsyncImage url={file.url} fixedAspectRatio={false}></AsyncImage>
+          <AsyncImage url={file.url}></AsyncImage>
         </div>
       {:else}
         <div
