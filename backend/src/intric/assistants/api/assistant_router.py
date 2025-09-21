@@ -195,6 +195,9 @@ async def ask_assistant(
     tool_assistant_id = None
     if ask.tools is not None and ask.tools.assistants:
         tool_assistant_id = ask.tools.assistants[0].id
+
+    # Pass image generation flag and params to service
+    # Maintains backward compatibility - defaults to False if not specified
     response = await service.ask(
         question=ask.question,
         assistant_id=id,
@@ -202,6 +205,8 @@ async def ask_assistant(
         stream=ask.stream,
         tool_assistant_id=tool_assistant_id,
         version=version,
+        image_generation=ask.image_generation,  # Explicit flag takes precedence
+        image_generation_params=ask.image_generation_params,
     )
 
     return await assistant_protocol.to_response(
@@ -293,6 +298,9 @@ async def ask_followup(
     tool_assistant_id = None
     if ask.tools is not None and ask.tools.assistants:
         tool_assistant_id = ask.tools.assistants[0].id
+
+    # Pass image generation flag and params to service for follow-up questions
+    # Maintains backward compatibility - defaults to False if not specified
     response = await service.ask(
         question=ask.question,
         assistant_id=id,
@@ -301,6 +309,8 @@ async def ask_followup(
         session_id=session_id,
         tool_assistant_id=tool_assistant_id,
         version=version,
+        image_generation=ask.image_generation,  # Explicit flag takes precedence
+        image_generation_params=ask.image_generation_params,
     )
 
     return await assistant_protocol.to_response(

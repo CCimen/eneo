@@ -14,6 +14,7 @@ from intric.assistants.assistant_repo import AssistantRepository
 from intric.authentication.auth_service import AuthService
 from intric.completion_models.infrastructure.context_builder import count_tokens
 from intric.completion_models.infrastructure.web_search import WebSearch
+from intric.conversations.conversation_models import ImageGenerationParams
 from intric.files.file_service import FileService
 from intric.main.exceptions import BadRequestException, UnauthorizedException
 from intric.main.logging import get_logger
@@ -549,6 +550,7 @@ class AssistantService:
         use_web_search: bool = False,
         assistant_selector_tokens: int = 0,
         image_generation: bool = False,
+        image_generation_params: Optional[ImageGenerationParams] = None,
     ):
         space = await self.space_repo.get_space_by_assistant(assistant_id=assistant_id)
         active_assistant = space.get_assistant(assistant_id=assistant_id)
@@ -608,13 +610,30 @@ class AssistantService:
         else:
             web_search_results = []
 
-        # Add logging to trace image generation routing
-        logger.info(f"[Assistant Service] Image generation mode: {image_generation}")
+        # Check explicit image generation flag first (API parameter)
+        # Then fall back to text pattern detection for backward compatibility
+        use_image_generation = image_generation
 
-        if image_generation:
-            logger.info(f"[Assistant Service] Routing to image generation for assistant: {assistant_to_ask.name} (ID: {assistant_to_ask.id})")
-            logger.info(f"[Assistant Service] Active assistant: {active_assistant.name} (ID: {active_assistant.id})")
-            logger.info(f"[Assistant Service] Space: {space.name} (ID: {space.id})")
+        # Auto-enable if params are provided (for backward compatibility with new API)
+        if image_generation_params and not use_image_generation:
+            use_image_generation = True
+            logger.debug("Image generation auto-enabled due to provided params")
+
+        # Fall back to text pattern detection only if not explicitly set
+        # This ensures backward compatibility with existing integrations
+        if not use_image_generation:
+            # Check for legacy text patterns that trigger image generation
+            question_lower = cleaned_question.lower()
+            if any(pattern in question_lower for pattern in ["image:", "generate image", "create image", "draw"]):
+                use_image_generation = True
+                logger.debug("Image generation enabled via text pattern for backward compatibility")
+
+        logger.debug(f"[Assistant Service] Final image generation decision: {use_image_generation}")
+
+        if use_image_generation:
+            logger.debug(f"[Assistant Service] Routing to image generation for assistant: {assistant_to_ask.name} (ID: {assistant_to_ask.id})")
+            logger.debug(f"[Assistant Service] Active assistant: {active_assistant.name} (ID: {active_assistant.id})")
+            logger.debug(f"[Assistant Service] Space: {space.name} (ID: {space.id})")
 
             # Check space permissions for image generation before proceeding
             try:
@@ -638,8 +657,9 @@ class AssistantService:
                 stream=stream,
                 version=version,
                 web_search_results=web_search_results,
-                image_generation=image_generation,
+                image_generation=use_image_generation,
                 image_generation_service=self.image_generation_service,
+                image_generation_params=image_generation_params,
             )
         else:
             logger.debug(f"[Assistant Service] Routing to completion service for assistant: {assistant_to_ask.name}")

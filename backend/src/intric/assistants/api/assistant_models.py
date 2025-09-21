@@ -12,6 +12,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_validator,
 )
 
 from intric.ai_models.completion_models.completion_model import (
@@ -22,6 +23,7 @@ from intric.ai_models.completion_models.completion_model import (
 from intric.ai_models.embedding_models.embedding_model import EmbeddingModelLegacy
 from intric.collections.presentation.collection_models import CollectionPublic
 from intric.completion_models.infrastructure.web_search import WebSearchResult
+from intric.conversations.conversation_models import ImageGenerationParams
 from intric.files.file_models import File, FilePublic, FileRestrictions
 from intric.groups_legacy.api.group_models import GroupInDBBase
 from intric.info_blobs.info_blob import InfoBlobInDBNoText
@@ -156,6 +158,22 @@ class AskAssistant(BaseModel):
     files: list[ModelId] = Field(max_length=get_settings().max_in_question, default=[])
     stream: bool = False
     tools: Optional[UseTools] = None
+
+    # Image generation configuration
+    image_generation: bool = False  # Backward compatibility flag
+    image_generation_params: Optional[ImageGenerationParams] = Field(
+        None,
+        description="Advanced image generation parameters. If provided, image_generation is automatically set to True."
+    )
+
+    @model_validator(mode="after")
+    def auto_enable_image_generation(self) -> "AskAssistant":
+        """Auto-enable image generation when params are provided for consistency"""
+        # This ensures backward compatibility - if params are provided without explicit flag,
+        # image generation is automatically enabled (consistent with ConversationRequest)
+        if self.image_generation_params is not None and not self.image_generation:
+            self.image_generation = True
+        return self
 
 
 class AssistantResponse(BaseModel):

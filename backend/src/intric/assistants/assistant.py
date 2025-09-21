@@ -13,6 +13,7 @@ from intric.assistants.api.assistant_models import AssistantType
 from intric.base.base_entity import Entity
 from intric.completion_models.domain.completion_model import CompletionModel
 from intric.completion_models.infrastructure.completion_service import CompletionService
+from intric.conversations.conversation_models import ImageGenerationParams
 from intric.files.file_models import File, FileInfo, FileType
 from intric.files.text import TextMimeTypes
 from intric.info_blobs.info_blob import InfoBlobChunkInDBWithScore
@@ -313,6 +314,7 @@ class Assistant(Entity):
         web_search_results: list["WebSearchResult"] = [],
         image_generation: bool = False,
         image_generation_service: Optional["ImageGenerationService"] = None,
+        image_generation_params: Optional[ImageGenerationParams] = None,
     ):
         if any([file.file_type == FileType.IMAGE for file in files]):
             if not self.completion_model.vision:
@@ -344,11 +346,22 @@ class Assistant(Entity):
             logger.debug(f"Routing to image generation service for space: {self.space_id}")
 
             try:
-                # Note: Space context should be passed from the assistant service
-                # For now, generate image without space context (will be fixed in assistant service)
-                # Generate image directly using image generation service
+                # Use provided params if available for flexible configuration
+                # Supports both explicit API parameters and defaults
+                kwargs = {}
+                if image_generation_params:
+                    if image_generation_params.size:
+                        kwargs["size"] = image_generation_params.size
+                    if image_generation_params.quality:
+                        kwargs["quality"] = image_generation_params.quality
+                    if image_generation_params.n:
+                        kwargs["n"] = image_generation_params.n
+                    # Note: model selection handled at service level
+
+                # Generate image with parameters
                 image_bytes = await image_generation_service.generate_image(
-                    prompt=question
+                    prompt=question,
+                    **kwargs
                 )
 
                 # Create a completion object with image data
