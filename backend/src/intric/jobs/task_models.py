@@ -28,6 +28,14 @@ class UploadTask(InfoBlobTask):
     mimetype: str
 
 
+class DeepResearchPlanTask(TaskParams):
+    session_id: UUID
+
+
+class DeepResearchExecuteTask(TaskParams):
+    session_id: UUID
+
+
 class UploadInfoBlob(UploadTask):
     pass
 

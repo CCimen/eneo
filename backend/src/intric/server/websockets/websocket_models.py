@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any
 from uuid import UUID
+from datetime import datetime
 
 from pydantic import BaseModel, model_validator
 
@@ -12,6 +13,7 @@ INTRIC_SUBPROTOCOL = "intric"
 class OutGoingMessageType(str, Enum):
     PONG = "pong"
     APP_RUN_UPDATES = "app_run_updates"
+    DEEP_RESEARCH_UPDATES = "deep_research_updates"
 
 
 class IncomingMessageType(str, Enum):
@@ -84,5 +86,17 @@ class WsAppRunUpdate(MessagePayload):
     space: Space | None = None
 
 
+class WsDeepResearchUpdate(MessagePayload):
+    """WebSocket message for deep research progress updates."""
+    session_id: UUID
+    status: str  # planning, searching, synthesizing, complete, failed
+    progress: int  # 0-100
+    current_step: str
+    sources_found: int
+    branches_complete: int
+    total_branches: int
+    timestamp: datetime
+
+
 # Add the websocket models here in order to include them in the openapi schema
-WS_MODELS = [WsOutgoingWebSocketMessage, WsAppRunUpdate]
+WS_MODELS = [WsOutgoingWebSocketMessage, WsAppRunUpdate, WsDeepResearchUpdate]

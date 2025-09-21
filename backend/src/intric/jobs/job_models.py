@@ -17,6 +17,8 @@ class Task(str, Enum):
     RUN_APP = "run_app"
     PULL_CONFLUENCE_CONTENT = "pull_confluence_content"
     PULL_SHAREPOINT_CONTENT = "pull_sharepoint_content"
+    GENERATE_RESEARCH_PLAN = "generate_research_plan_task"
+    EXECUTE_RESEARCH = "execute_research_task"
 
 
 class JobBase(BaseModel):

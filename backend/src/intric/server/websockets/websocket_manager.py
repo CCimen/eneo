@@ -72,6 +72,13 @@ class WebSocketManager:
     async def _process_redis_message(self, channel: str, raw_message: dict):
         message = RedisMessage.model_validate_json(raw_message["data"].decode())
         additional_data_present = bool(message.additional_data)
+
+        # Check if this is a deep research update (which doesn't have app_id)
+        if additional_data_present and message.additional_data.get("type") == "deep_research_update":
+            # For deep research updates, just log and skip the normal app run processing
+            # The frontend handles these differently
+            return
+
         await self.publish(
             channel,
             message=WsOutgoingWebSocketMessage(
@@ -80,7 +87,7 @@ class WebSocketManager:
                     id=message.id,
                     status=message.status,
                     app_id=(
-                        message.additional_data["app_id"]
+                        message.additional_data.get("app_id")
                         if additional_data_present
                         else None
                     ),
@@ -89,7 +96,7 @@ class WebSocketManager:
                             id=message.additional_data["space"]["id"],
                             personal=message.additional_data["space"]["personal"],
                         )
-                        if additional_data_present
+                        if additional_data_present and "space" in message.additional_data
                         else None
                     ),
                 ),
@@ -99,13 +106,22 @@ class WebSocketManager:
     async def _send_message(
         self, websocket: WebSocket, message: WsOutgoingWebSocketMessage
     ):
-        await websocket.send_text(
-            message.model_dump_json(serialize_as_any=True, exclude_none=True)
-        )
+        try:
+            await websocket.send_text(
+                message.model_dump_json(serialize_as_any=True, exclude_none=True)
+            )
+        except Exception as e:
+            # Connection might be closed, log at debug level
+            logger.debug(f"Failed to send WebSocket message: {e}")
 
     async def pong(self, websocket: WebSocket):
-        message = WsOutgoingWebSocketMessage(type=OutGoingMessageType.PONG)
-        await self._send_message(websocket, message)
+        try:
+            message = WsOutgoingWebSocketMessage(type=OutGoingMessageType.PONG)
+            await self._send_message(websocket, message)
+        except Exception:
+            # WebSocket might have closed during long operations
+            # This is non-critical, just log at debug level
+            logger.debug("Failed to send pong - WebSocket may have closed")
 
     async def handle_message(
         self, websocket_message: ParsedMessage, websocket: WebSocket, user: UserInDB

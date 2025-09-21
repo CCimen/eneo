@@ -5,9 +5,13 @@
   import MessageAnswer from "./MessageAnswer.svelte";
   import MessageFiles from "./MessageFiles.svelte";
   import MessageTools from "./MessageTools.svelte";
+  import MessageResearchPlan from "$lib/components/research/MessageResearchPlan.svelte";
+  import MessageResearchProgress from "$lib/components/research/MessageResearchProgress.svelte";
+  import MessageResearchResults from "$lib/components/research/MessageResearchResults.svelte";
   import { browser } from "$app/environment";
   import { getChatService } from "../../ChatService.svelte";
   import { setMessageContext } from "../../MessageContext.svelte";
+  import { dynamicColour } from "$lib/core/colours";
 
   interface Props {
     message: ConversationMessage;
@@ -78,7 +82,34 @@
 >
   <MessageFiles></MessageFiles>
   <MessageQuestion></MessageQuestion>
-  <MessageAnswer></MessageAnswer>
+  
+  <!-- Research Message Components -->
+  {#if message.research_type === 'research_plan_generating'}
+    <!-- Plan generation loading state -->
+    <div 
+      {...dynamicColour({ basedOn: 'research-loading' })}
+      class="bg-dynamic-dimmer border-dynamic-default my-4 rounded-2xl border"
+    >
+      <div class="p-4">
+        <div class="flex items-center gap-3">
+          <IconLoadingSpinner class="h-5 w-5 animate-spin text-accent-default" />
+          <div>
+            <div class="text-primary font-medium">🔍 Generating research plan</div>
+            <div class="text-secondary text-sm">Creating structured research questions...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {:else if message.research_type === 'research_plan'}
+    <MessageResearchPlan></MessageResearchPlan>
+  {:else if message.research_type === 'research_progress'}
+    <MessageResearchProgress></MessageResearchProgress>
+  {:else if message.research_type === 'research_results'}
+    <MessageResearchResults></MessageResearchResults>
+  {:else}
+    <MessageAnswer></MessageAnswer>
+  {/if}
+  
   {#if showSpinner}
     <div class="flex items-center gap-2">
       <IconLoadingSpinner class="animate-spin" />

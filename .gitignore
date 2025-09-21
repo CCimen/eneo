@@ -20,3 +20,18 @@
 
 # venv
 .venv/
+
+specs/
+.specify/
+.claude/
+
+.mcp.json
+LOCAL_DEEP_RESEARCH_LIBRARY_DOCS.md
+examples_localdeepresearch
+__CACHE_DIR__
+backend/explore_research.py
+backend/explore2.py
+backend/research_history.db
+.serena
+web.zip
+web2.zip

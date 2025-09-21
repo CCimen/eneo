@@ -71,7 +71,7 @@
 >
   {#if chat.currentConversation.messages && chat.currentConversation.messages.length > 0}
     <div
-      class="flex flex-grow flex-col gap-2 p-4 md:p-8"
+      class="flex flex-grow flex-col gap-2 p-4 mb-24 md:p-8 md:mb-0"
       aria-live="polite"
       id="session-message-container"
     >
@@ -101,7 +101,7 @@
   {/if}
   <div
     id="session-input-container"
-    class="sticky inset-x-0 bottom-0 flex flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--background-primary)] p-0 backdrop-blur-sm md:gap-4 md:p-6 md:pt-0"
+    class="sticky inset-x-0 bottom-0 flex flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--background-primary)] p-0 backdrop-blur-sm md:gap-4 md:p-6 md:pt-0 z-20"
   >
     {#if showScrollToBottom}
       <div transition:fade={{ duration: 150 }} class="absolute -top-12">
