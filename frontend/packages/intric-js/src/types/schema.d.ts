@@ -1802,7 +1802,10 @@ export interface components {
       grant_type?: string | null;
       /** Username */
       username: string;
-      /** Password */
+      /**
+       * Password
+       * Format: password
+       */
       password: string;
       /**
        * Scope
@@ -1811,7 +1814,10 @@ export interface components {
       scope?: string;
       /** Client Id */
       client_id?: string | null;
-      /** Client Secret */
+      /**
+       * Client Secret
+       * Format: password
+       */
       client_secret?: string | null;
     };
     /** Body_upload_file_api_v1_files__post */
