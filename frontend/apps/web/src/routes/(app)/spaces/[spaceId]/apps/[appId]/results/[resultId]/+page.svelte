@@ -36,6 +36,28 @@
 
   let result = $state(data.result);
   const resultTitle = $derived(getResultTitle(result));
+  const isImageResult = $derived(result.output_type === "image" && !!result.output_image);
+  const resultContainerClass = $derived(
+    isImageResult
+      ? "relative min-h-72 w-full max-w-[980px]"
+      : "prose border-default bg-primary relative min-h-72 w-full max-w-[90ch] rounded-sm border px-16 py-8 text-lg shadow-lg"
+  );
+  const printableContainerClass = $derived(
+    isImageResult
+      ? "printable-document relative flex flex-col gap-6"
+      : "printable-document relative flex flex-col py-4"
+  );
+
+  const imageMetadata = $derived(() => {
+    if (!isImageResult) return undefined;
+
+    return {
+      prompt: result.output,
+      // NOTE: This assumes a fixed size. Ideally, this would come from the API/data model.
+      size: "1024x1024",
+      fileSize: result.output_image?.size
+    };
+  });
 
   async function downloadAsText(text?: string | null) {
     if (!text) {
@@ -60,8 +82,6 @@
       }, 1500);
     }
   }
-
-  // We should subscribe to this specific app here somewhere
 
   let printElement = $state<HTMLDivElement>();
   function print() {
@@ -103,9 +123,6 @@
       }
     });
 
-    // There is a bit of an edge case where the run is still "queued" when the load function runs
-    // and switches to "in progress" just before the websocket handler is registered. This makes us
-    // miss a crucial update; as a work around we always poll once more in case we missed sth.
     if (result.status === "queued") {
       data.intric.apps.runs.get(result).then((updatedResult) => {
         result = updatedResult;
@@ -126,12 +143,9 @@
 {#snippet formattedResult()}
   {#if result.output_type === "image" && result.output_image}
     {@const imageUrl = attachmentUrlService.getUrl(result.output_image)}
-    <div class="flex flex-col items-center gap-4">
-      <AsyncImage url={imageUrl} />
-      {#if result.output}
-        <p class="text-secondary text-sm italic">Prompt: {result.output}</p>
-      {/if}
-    </div>
+    <section class="mx-auto w-full max-w-3xl space-y-6 md:space-y-7">
+      <AsyncImage url={imageUrl} variant="app" metadata={imageMetadata} />
+    </section>
   {:else if result.output}
     {@render downloadButtons("output", result.output)}
     <Markdown source={result.output}></Markdown>
@@ -186,10 +200,8 @@
 
   <Page.Main>
     <div class="flex items-start justify-center gap-16 p-8">
-      <div
-        class=" prose border-default bg-primary relative min-h-72 w-full max-w-[90ch] rounded-sm border px-16 py-8 text-lg shadow-lg"
-      >
-        <div class="printable-document relative flex flex-col py-4" bind:this={printElement}>
+      <div class={resultContainerClass}>
+        <div class={printableContainerClass} bind:this={printElement}>
           {#if isRunComplete}
             {#if transcribedFiles.length > 0}
               <div class="hidden-in-print -mt-2 h-20">
@@ -238,7 +250,6 @@
               </Tab>
             {:else if result.output || (result.output_type === "image" && result.output_image)}
               {@render formattedResult()}
-              <!-- Need to check for browser as we make a fetch request in the await -->
             {:else if browser && result.status === "failed" && result.input.files.length > 0}
               <div class="flex flex-grow flex-col items-center justify-center gap-2">
                 <span class="py-2">

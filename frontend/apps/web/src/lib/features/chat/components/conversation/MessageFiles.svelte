@@ -36,8 +36,8 @@
   <div class="flex w-full flex-wrap items-center justify-end gap-2">
     {#each files as file (file.id)}
       {#if file.type === "image"}
-        <div class="ml-12 overflow-clip rounded-lg border shadow-md">
-          <AsyncImage url={file.url}></AsyncImage>
+        <div class="ml-12 max-w-full">
+          <AsyncImage url={file.url} />
         </div>
       {:else}
         <div
